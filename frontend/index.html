@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAXG v3.1 | TACTICAL COMMAND CENTER</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0D0D0D;
+            --panel: rgba(26, 26, 26, 0.85);
+            --accent: #00FFA3;
+            --danger: #FF3B3B;
+            --text-main: #E0E0E0;
+            --text-dim: #888888;
+            --border: rgba(0, 255, 163, 0.15);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(rgba(0, 255, 163, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 163, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        #ui-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            gap: 15px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        /* HEADER & TACTICAL HUD */
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent);
+            padding: 0 20px;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+        }
+
+        .sys-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+
+        .nav-tabs button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 5px 15px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: 0.3s;
+        }
+
+        .nav-tabs button.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 10px var(--border);
+        }
+
+        /* LEFT PANEL: INTEL LOG */
+        .intel-log {
+            grid-row: 2 / -1;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .signal-card {
+            border-left: 3px solid var(--accent);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            background: var(--accent);
+            color: black;
+            padding: 2px 8px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        /* MAIN: DEPLOYMENT STATUS */
+        main {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .target-reticle {
+            width: 300px;
+            height: 300px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            position: relative;
+            animation: rotate 20s linear infinite;
+        }
+
+        .target-reticle::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: -10px; right: -10px;
+            height: 1px; background: var(--accent);
+        }
+
+        .target-data {
+            position: absolute;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .pnl-big {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent);
+        }
+
+        /* SETTINGS TAB */
+        #settings-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            padding: 50px;
+        }
+
+        .settings-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #1A1A1A;
+            border: 2px solid var(--accent);
+            padding: 40px;
+        }
+
+        .field { margin-bottom: 20px; }
+        .field label { display: block; color: var(--accent); margin-bottom: 5px; font-family: 'JetBrains Mono'; }
+        .field input { width: 100%; padding: 10px; background: black; border: 1px solid var(--border); color: white; }
+
+        @keyframes rotate { from {transform: rotate(0deg)} to {transform: rotate(360deg)} }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-grid">
+        <header>
+            <div class="sys-title">MAXG v3.1 | TACTICAL_COMMAND_AIP</div>
+            <div class="nav-tabs">
+                <button class="active">BATTLEBOARD</button>
+                <button onclick="toggleSettings()">HQ_SETTINGS</button>
+                <button>HISTORICAL_ARCHIVE</button>
+            </div>
+        </header>
+
+        <section class="intel-log">
+            <h3 style="color:var(--accent); font-family: 'JetBrains Mono'; margin-top:0;">INTEL_LOG_STREAM</h3>
+            <div id="signals-container">
+                <div class="signal-card">
+                    <div class="status-badge">CE_DEPLOYED</div>
+                    <div>STRIKE: NIFTY 24500 CE</div>
+                    <div>PRICE: 107.50</div>
+                    <div style="color: var(--text-dim); margin-top:10px;">[INTEL] Structural 9-EMA bounce confirmed. ADX strength > 24.</div>
+                </div>
+            </div>
+        </section>
+
+        <main>
+            <div class="target-reticle"></div>
+            <div class="target-data">
+                <div style="font-size: 0.8rem; letter-spacing: 5px;">CURRENT_SESSION_PNL</div>
+                <div class="pnl-big">+24,423</div>
+                <div style="margin-top: 10px; color: var(--accent);">STATUS: MISSION_SUCCESS</div>
+            </div>
+        </main>
+
+        <section style="grid-column: 3; background: var(--panel); border: 1px solid var(--border); padding: 20px;">
+            <h4 style="color:var(--accent); margin-top:0;">SYSTEM_STATUS</h4>
+            <div style="font-family: 'JetBrains Mono'; font-size: 0.8rem;">
+                <div>TOTP: [LOCKED]</div>
+                <div>NTFY: [ACTIVE]</div>
+                <div>AIP: [MONITORING]</div>
+                <hr style="border: 0.5px solid var(--border)">
+                <div style="color: var(--accent);">ACCURACY: 60%</div>
+                <div style="color: var(--text-dim);">TRADES: 50</div>
+            </div>
+        </section>
+    </div>
+
+    <div id="settings-overlay">
+        <div class="settings-form">
+            <h2 style="color: var(--accent); font-family: 'JetBrains Mono'; margin-top:0;">HQ_CONFIG_CENTER</h2>
+            <div class="field">
+                <label>GROWW_TOTP_SECRET</label>
+                <input type="password" placeholder="ENTER SECRET KEY">
+            </div>
+            <div class="field">
+                <label>GOOGLE_AIP_KEY</label>
+                <input type="password" placeholder="GEMINI API KEY">
+            </div>
+            <div class="field">
+                <label>GITHUB_TOKEN</label>
+                <input type="text" placeholder="PERSONAL ACCESS TOKEN">
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-top:5px;">Go to Settings > Developer Settings > Tokens to generate.</div>
+            </div>
+            <div style="display:flex; justify-content: space-between;">
+                <button onclick="toggleSettings()" style="background:transparent; color:white; border:1px solid white; padding:10px 20px; cursor:pointer;">ABORT_CHANGES</button>
+                <button style="background:var(--accent); color:black; border:none; padding:10px 20px; cursor:pointer; font-weight:bold;">SAVE_COMMAND_CONFIG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSettings() {
+            const overlay = document.getElementById('settings-overlay');
+            overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>
