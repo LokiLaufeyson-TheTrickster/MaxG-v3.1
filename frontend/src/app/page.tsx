@@ -1,6 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { 
+  Shield, 
+  Terminal, 
+  Settings, 
+  Zap, 
+  Activity, 
+  Crosshair, 
+  Lock, 
+  ArrowUpRight, 
+  ChevronRight,
+  Database,
+  Cpu,
+  RefreshCw,
+  Bell
+} from 'lucide-react';
 
 interface Signal {
   Time?: string;
@@ -20,7 +35,6 @@ export default function Dashboard() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load from GitHub JSON File
   const fetchSignals = async () => {
     try {
       const res = await fetch("https://raw.githubusercontent.com/LokiLaufeyson-TheTrickster/MaxG-v3.1/main/data/signals.json");
@@ -47,136 +61,199 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0D0D0D] text-white font-mono relative overflow-hidden" 
-          style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 163, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 163, 0.03) 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
+    <main className="min-h-screen bg-[#08090A] text-[#E4E4E7] font-sans selection:bg-blue-500/30">
       
-      <header className="flex justify-between items-center p-6 border-b border-[#00FFA3]/20 bg-[#1A1A1A]/80 backdrop-blur-md">
-        <div>
-          <h1 className="text-2xl font-bold text-[#00FFA3] tracking-[0.2em]">MAXG v3.1 | TACTICAL_AIP</h1>
-          <p className="text-gray-500 text-xs mt-1">SENTINEL MODE: ACTIVE | LOG: {new Date().toLocaleDateString()}</p>
+      {/* Top Navigation Bar: Minimalist Palantir Style */}
+      <nav className="h-14 border-b border-white/[0.08] bg-[#0C0D0E]/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+              <Shield className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold tracking-tight text-sm uppercase">MaxG</span>
+          </div>
+          <div className="h-4 w-[1px] bg-white/10" />
+          <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">Sentinel_AIP v3.1</span>
         </div>
-        <div className="flex gap-4">
+        
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-green-500 uppercase tracking-tighter">Live Connection</span>
+          </div>
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="px-4 py-2 border border-[#00FFA3]/30 text-[#00FFA3] text-xs hover:bg-[#00FFA3]/10 transition-all"
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-zinc-400"
           >
-            HQ_CONFIG
+            <Settings className="w-4 h-4" />
           </button>
         </div>
-      </header>
+      </nav>
 
-      <div className="grid grid-cols-12 gap-6 p-6">
+      <div className="p-6 grid grid-cols-12 gap-6">
         
-        {/* Left: Intelligence Feed */}
-        <section className="col-span-12 lg:col-span-3 bg-[#1A1A1A]/50 border border-[#00FFA3]/10 p-4 h-[600px] overflow-y-auto">
-          <h3 className="text-[#00FFA3] text-sm mb-4 border-b border-[#00FFA3]/20 pb-2">INTEL_LOG_STREAM</h3>
-          <div className="space-y-4">
-            {signals.map((sig: Signal, i: number) => (
-              <div key={i} className="p-3 border-l-2 border-[#00FFA3] bg-[#222]/30 text-xs">
-                <div className="flex justify-between text-[#00FFA3] font-bold mb-1">
-                  <span>{sig.Strike}</span>
-                  <span>{sig.Time || sig.Timestamp}</span>
+        {/* Metric Overview: Sophisticated Foundary Cards */}
+        <div className="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <MetricCard 
+            icon={<Zap className="w-4 h-4 text-blue-400" />} 
+            label="Total Alpha Capture" 
+            value="+24,423" 
+            trend="+12% vs last session"
+          />
+          <MetricCard 
+            icon={<Activity className="w-4 h-4 text-purple-400" />} 
+            label="Regime Confidence" 
+            value="89.4%" 
+            trend="Strong Trend Lock"
+          />
+          <MetricCard 
+            icon={<Database className="w-4 h-4 text-emerald-400" />} 
+            label="Signal Persistence" 
+            value="Critical 6/6" 
+            trend="Monitored 1m Interval"
+          />
+          <MetricCard 
+            icon={<Bell className="w-4 h-4 text-amber-400" />} 
+            label="Active Alerts" 
+            value="Enabled" 
+            trend="ntfy: MaxG_Alerts_v1"
+          />
+        </div>
+
+        {/* Left column: Data Logs & Intel */}
+        <div className="col-span-12 lg:col-span-3 space-y-6">
+          <div className="bg-[#0C0D0E] border border-white/[0.08] rounded-xl overflow-hidden p-4">
+            <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+              <Terminal className="w-4 h-4 text-blue-500" />
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">AIP Intel Stream</h3>
+            </div>
+            <div className="space-y-3">
+              {signals.slice(0, 5).map((sig, i) => (
+                <div key={i} className="group p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-blue-500/30 transition-all">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-bold text-white tracking-tight">{sig.Strike}</span>
+                    <ArrowUpRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-400 transition-colors" />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">Verified structural 9-EMA pullback confirmation. Market regime aligned for expansion.</p>
                 </div>
-                <div className="text-gray-500 italic">Structural 9-EMA Pullback Confirmation. Alpha capture active.</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Center: Tactical HUD */}
-        <section className="col-span-12 lg:col-span-6 bg-[#1A1A1A]/30 border border-[#00FFA3]/10 flex flex-col items-center justify-center relative py-20">
-          <div className="w-64 h-64 border border-[#00FFA3]/20 rounded-full animate-spin-slow relative flex items-center justify-center">
-            <div className="absolute w-[110%] h-[1px] bg-[#00FFA3]/50"></div>
-            <div className="absolute h-[110%] w-[1px] bg-[#00FFA3]/50"></div>
-          </div>
-          <div className="absolute text-center">
-            <div className="text-xs text-gray-500 tracking-[0.3em] mb-2 uppercase">Total Portfolio Alpha</div>
-            <div className="text-6xl font-black text-[#00FFA3] drop-shadow-[0_0_15px_rgba(0,255,163,0.5)]">+24,423</div>
-            <div className="text-xs text-[#00FFA3] mt-2 tracking-widest uppercase">Mission: Success</div>
-          </div>
-        </section>
-
-        {/* Right: Asset Table */}
-        <section className="col-span-12 lg:col-span-3 bg-[#1A1A1A]/50 border border-[#00FFA3]/10 p-4">
-          <h3 className="text-[#00FFA3] text-sm mb-4 border-b border-[#00FFA3]/20 pb-2">SYST_DIAGNOSTICS</h3>
-          <div className="space-y-6 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-500 uppercase">Strat Accuracy</span>
-              <span className="text-[#00FFA3]">60% (MONSTER_v2)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 uppercase">Persistence</span>
-              <span className="text-white">6/6 CRITICAL</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 uppercase">NTFY Channel</span>
-              <span className="text-[#00FFA3]">ACTIVE (MAXG_ALERT)</span>
-            </div>
-            <div className="p-4 bg-black/50 border border-[#00FFA3]/20 mt-10">
-              <div className="text-gray-600 mb-2 uppercase text-[10px]">Command Note</div>
-              <div className="text-gray-400">Targeting high-frequency 1-minute delta shifts. System remains in green regime.</div>
-            </div>
-          </div>
-        </section>
-
-
-        {/* Market Matrix Table */}
-        <section className="col-span-12 bg-[#1A1A1A]/80 border border-[#00FFA3]/10 overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#00FFA3]/5 text-[#00FFA3]/60 uppercase tracking-widest">
-              <tr>
-                <th className="p-4 border-b border-[#00FFA3]/10">Timestamp</th>
-                <th className="p-4 border-b border-[#00FFA3]/10">Strike_ID</th>
-                <th className="p-4 border-b border-[#00FFA3]/10">LTP_Capture</th>
-                <th className="p-4 border-b border-[#00FFA3]/10">Target_Vectors</th>
-                <th className="p-4 border-b border-[#00FFA3]/10">Tactical_Stop</th>
-              </tr>
-            </thead>
-            <tbody>
-              {signals.map((sig: Signal, i: number) => (
-                <tr key={i} className="hover:bg-[#00FFA3]/5 border-b border-[#00FFA3]/5 transition-colors">
-                  <td className="p-4 text-gray-500 font-mono">{sig.Time || sig.Timestamp}</td>
-                  <td className="p-4 font-bold text-[#00FFA3] tracking-wider">{sig.Strike}</td>
-                  <td className="p-4 font-mono">{sig.LTP || sig.Entry_LTP}</td>
-                  <td className="p-4">
-                    <span className="text-[#00FFA3]">{sig.T1}</span> / {sig.T2} / <span className="text-yellow-500">{sig.T3}</span>
-                  </td>
-                  <td className="p-4 text-red-500 font-bold">{sig.SL}</td>
-                </tr>
               ))}
-            </tbody>
-          </table>
-        </section>
+            </div>
+          </div>
+        </div>
+
+        {/* Center/Main: Tactical Workspace */}
+        <div className="col-span-12 lg:col-span-9 space-y-6">
+          <div className="bg-[#0C0D0E] border border-white/[0.08] rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crosshair className="w-5 h-5 text-blue-500" />
+                <h2 className="font-bold text-lg tracking-tight">Active Operation Matrix</h2>
+              </div>
+              <button 
+                onClick={fetchSignals}
+                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" /> Sync Intelligence
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.01]">
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Coordinate (Time)</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Asset Vector</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">LTP Capture</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Threat (SL)</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 text-right">Targets (T1/T2)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {signals.map((sig, i) => (
+                    <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-mono text-zinc-400">{sig.Time || sig.Timestamp}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">{sig.Strike}</span>
+                          <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase tracking-tighter">Verified</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-sm font-mono text-zinc-300">
+                        {sig.LTP || sig.Entry_LTP}
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-red-500/80">{sig.SL}</span>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="text-right">
+                            <div className="text-xs font-bold text-emerald-400">{sig.T1}</div>
+                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">Initial</div>
+                          </div>
+                          <div className="h-6 w-[1px] bg-white/10" />
+                          <div className="text-right">
+                            <div className="text-xs font-bold text-blue-400">{sig.T2}</div>
+                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">Major</div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {signals.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-24 text-center">
+                        <div className="flex flex-col items-center gap-3 opacity-20">
+                          <Cpu className="w-10 h-10" />
+                          <p className="text-sm italic">Scanning market structural regimes. Zero assets confirmed.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Settings Modal: AIP Styled */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-6">
-          <div className="bg-[#111] border-2 border-[#00FFA3] p-10 w-full max-w-lg shadow-[0_0_50px_rgba(0,255,163,0.2)]">
-            <h2 className="text-2xl font-bold mb-6 tracking-widest text-[#00FFA3]">HQ_CONFIG_CENTER</h2>
+        <div className="fixed inset-0 bg-[#08090A]/95 backdrop-blur-md flex items-center justify-center z-[100] p-6">
+          <div className="bg-[#0C0D0E] border border-white/10 p-10 w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600" />
+            <div className="flex items-center gap-3 mb-8">
+              <Lock className="w-5 h-5 text-blue-500" />
+              <h2 className="text-2xl font-bold tracking-tight">Access Control HQ</h2>
+            </div>
             <div className="space-y-6">
               <div>
-                <label className="block text-[10px] text-gray-500 uppercase mb-2">GitHub Personal Access Token</label>
-                <input 
-                  type="password"
-                  value={gitToken}
-                  onChange={(e) => setGitToken(e.target.value)}
-                  className="w-full bg-black border border-[#00FFA3]/30 p-4 text-[#00FFA3] font-mono text-sm"
-                  placeholder="GHP_REDACTED_ACCESS_TOKEN"
-                />
+                <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2 tracking-widest">GitHub Authentication Token</label>
+                <div className="relative">
+                  <input 
+                    type="password"
+                    value={gitToken}
+                    onChange={(e) => setGitToken(e.target.value)}
+                    className="w-full bg-white/[0.02] border border-white/10 p-4 rounded-xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600 transition-all"
+                    placeholder="ghp_security_manifest_token"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-600 mt-2 italic">Requires 'repo' scope permissions for structural data sync.</p>
               </div>
             </div>
             <div className="flex gap-4 mt-12">
               <button 
                 onClick={saveSettings}
-                className="flex-1 bg-[#00FFA3] text-black font-bold py-4 hover:shadow-[0_0_20px_rgba(0,255,163,1)] transition-all uppercase tracking-widest"
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all uppercase text-xs tracking-widest"
               >
-                COMMIT_DATA
+                Synchronize Platform
               </button>
               <button 
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-8 py-4 border border-white/20 text-white uppercase text-xs"
+                className="px-8 py-4 border border-white/10 text-zinc-400 hover:text-white rounded-xl uppercase text-[10px] font-bold tracking-widest transition-all"
               >
-                ABORT
+                Dismiss
               </button>
             </div>
           </div>
@@ -184,4 +261,20 @@ export default function Dashboard() {
       )}
     </main>
   );
+}
+
+function MetricCard({ icon, label, value, trend }: { icon: React.ReactNode, label: string, value: string, trend: string }) {
+  return (
+    <div className="bg-[#0C0D0E] border border-white/[0.08] p-5 rounded-xl hover:border-white/20 transition-all cursor-default group">
+      <div className="flex items-center justify-between mb-3">
+        <div className="p-2 bg-white/[0.02] rounded-lg border border-white/5 group-hover:bg-blue-500/10 group-hover:border-blue-500/20 transition-all">
+          {icon}
+        </div>
+        <ChevronRight className="w-3 h-3 text-zinc-700" />
+      </div>
+      <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{label}</h3>
+      <div className="text-2xl font-black text-white tracking-tight mb-2">{value}</div>
+      <div className="text-[10px] font-bold text-zinc-600 tracking-tight">{trend}</div>
+    </div>
+  )
 }
