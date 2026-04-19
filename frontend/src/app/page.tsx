@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
   Settings, 
@@ -8,13 +8,11 @@ import {
   Activity, 
   Lock, 
   ArrowUpRight, 
-  ChevronRight,
   Database,
   RefreshCw,
   Bell,
-  TrendingUp,
-  Radar,
-  ArrowRight
+  Cpu,
+  MousePointer2
 } from 'lucide-react';
 
 interface Signal {
@@ -31,12 +29,15 @@ interface Signal {
 
 export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Credentials State
   const [gitToken, setGitToken] = useState("");
   const [growwSecret, setGrowwSecret] = useState("");
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
-  const [signals, setSignals] = useState<Signal[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchSignals = async () => {
     try {
@@ -54,14 +55,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSignals();
-    const savedToken = localStorage.getItem("maxg_gh_token");
-    if (savedToken) setGitToken(savedToken);
-    const savedGSecret = localStorage.getItem("maxg_groww_secret");
-    if (savedGSecret) setGrowwSecret(savedGSecret);
-    const savedGToken = localStorage.getItem("maxg_groww_token");
-    if (savedGToken) setGrowwToken(savedGToken);
-    const savedGemini = localStorage.getItem("maxg_gemini_key");
-    if (savedGemini) setGeminiKey(savedGemini);
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    
+    // Load local settings
+    setGitToken(localStorage.getItem("maxg_gh_token") || "");
+    setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
+    setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
+    setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
+
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const saveSettings = () => {
@@ -73,187 +78,155 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#09090B] text-zinc-100 font-sans antialiased">
+    <main className="min-h-screen bg-[#030303] text-white font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
       
-      {/* Institutional Top Bar */}
-      <nav className="h-16 border-b border-zinc-800/50 bg-[#09090B] flex items-center justify-between px-8 sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Shield className="w-5 h-5 text-white" />
+      {/* Interactive Background Particles & Orbs */}
+      <div className="fixed inset-0 z-0">
+        <div 
+          className="absolute w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[160px] transition-transform duration-1000 ease-out pointer-events-none"
+          style={{ transform: `translate(${mousePos.x / 10}px, ${mousePos.y / 10}px)` }}
+        />
+        <div 
+          className="absolute bottom-[-100px] right-[-100px] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none"
+        />
+        <div className="absolute inset-0 opacity-20 pointer-events-none" 
+             style={{ backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)`, backgroundSize: '40px 40px' }} />
+      </div>
+
+      <nav className="h-20 border-b border-white/5 bg-white/[0.01] backdrop-blur-xl flex items-center justify-between px-12 sticky top-0 z-[100]">
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-100 transition duration-1000"></div>
+            <div className="relative w-10 h-10 bg-black rounded-full flex items-center justify-center border border-white/20">
+              <Shield className="w-5 h-5 text-blue-400" />
             </div>
-            <span className="font-bold text-lg tracking-tight">MaxG <span className="text-zinc-500 font-normal">Sentinel</span></span>
           </div>
-          <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-zinc-500">
-            <span className="hover:text-zinc-100 cursor-pointer transition-colors">Overview</span>
-            <span className="hover:text-zinc-100 cursor-pointer transition-colors">Tactical Loop</span>
-            <span className="hover:text-zinc-100 cursor-pointer transition-colors">Analytics</span>
-          </div>
+          <span className="text-xl font-black tracking-tighter uppercase italic">MAX-G <span className="text-blue-500">ETH_V1</span></span>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            <span className="text-[10px] font-bold text-emerald-500 uppercase">Live Engine</span>
-          </div>
+        <div className="flex items-center gap-8">
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium transition-all"
+            className="group flex items-center gap-3 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all active:scale-95"
           >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
+            <Settings className="w-4 h-4 text-zinc-400 group-hover:rotate-90 transition-transform duration-500" />
+            <span className="text-[10px] uppercase font-bold tracking-[.2em]">HQ_CONFIG</span>
           </button>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
+      <div className="relative z-10 max-w-[1400px] mx-auto p-12 space-y-12">
         
-        {/* Bento Stat Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard label="Total Portfolio Gain" value="+₹24,423" trend="+12.4%" icon={<Zap className="text-amber-400" />} />
-          <StatCard label="Institutional Accuracy" value="60.2%" trend="Stable" icon={<Radar className="text-indigo-400" />} />
-          <StatCard label="Signal Persistence" value="Critical" trend="6/6 Ready" icon={<Database className="text-blue-400" />} />
-          <StatCard label="Market Position" value="Balanced" trend="CE Bias" icon={<Activity className="text-emerald-400" />} />
+        {/* Stat Stream: Fluid Floating Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <StatPanel icon={<Zap />} label="Portfolio Alpha" value="+₹24,423" sub="V1 ENGINE CONFIRMED" />
+          <StatPanel icon={<Activity />} label="Trend Persistence" value="Critical" sub="6/6 PERSISTENCE" />
+          <StatPanel icon={<Cpu />} label="AIP Audit" value="Active" sub="GEMINI FLASH 2.0" />
+          <StatPanel icon={<RefreshCw />} label="Live Sync" value="9ms" sub="REAL-TIME POLLING" />
         </div>
 
-        <div className="grid grid-cols-12 gap-8">
+        <div className="grid grid-cols-12 gap-12">
           
-          {/* Main Workspace */}
-          <div className="col-span-12 lg:col-span-8 space-y-8">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-              <div className="px-8 py-6 border-b border-zinc-800 flex items-center justify-between">
-                <h2 className="font-bold text-xl">Operational Matrix</h2>
-                <button 
-                  onClick={fetchSignals}
-                  className="p-2 text-zinc-500 hover:text-zinc-100 transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
+          {/* Principal Data Matrix: Deep Glassmorphism */}
+          <div className="col-span-12 lg:col-span-9">
+            <div className="bg-white/[0.02] border border-white/10 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)]">
+              <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                    <MousePointer2 className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter">Tactical Stream</h2>
+                </div>
+                <button onClick={fetchSignals} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors">
+                   <RefreshCw className="w-4 h-4 text-zinc-500" />
                 </button>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-zinc-800/20 text-xs font-bold uppercase tracking-wider text-zinc-500">
-                      <th className="px-8 py-4">Timestamp</th>
-                      <th className="px-8 py-4">Asset ID</th>
-                      <th className="px-8 py-4">Capture LTP</th>
-                      <th className="px-8 py-4">Stop Loss</th>
-                      <th className="px-8 py-4 text-right">Targets</th>
+                    <tr className="text-[10px] font-black uppercase tracking-[.3em] text-zinc-500">
+                      <th className="px-10 py-8">Timestamp</th>
+                      <th className="px-10 py-8">Asset Matrix</th>
+                      <th className="px-10 py-8">LTP Vector</th>
+                      <th className="px-10 py-8 text-right">Targets / SL</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-white/[0.03]">
                     {signals.map((sig, i) => (
-                      <tr key={i} className="hover:bg-zinc-800/30 transition-colors group">
-                        <td className="px-8 py-5 text-sm font-mono text-zinc-500">{sig.Time || sig.Timestamp}</td>
-                        <td className="px-8 py-5">
-                          <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded text-xs font-bold italic">
-                            {sig.Strike}
-                          </span>
+                      <tr key={i} className="hover:bg-white/[0.03] transition-all group relative">
+                        <td className="px-10 py-8 text-xs font-mono text-zinc-500">{sig.Time || sig.Timestamp}</td>
+                        <td className="px-10 py-8">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-black text-blue-400 italic tracking-tighter">{sig.Strike}</span>
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+                          </div>
                         </td>
-                        <td className="px-8 py-5 text-sm font-bold text-zinc-100">{sig.LTP || sig.Entry_LTP}</td>
-                        <td className="px-8 py-5 text-sm font-bold text-red-500/80">{sig.SL}</td>
-                        <td className="px-8 py-5 text-right">
-                          <div className="flex items-center justify-end gap-2 text-sm">
-                            <span className="text-emerald-500 font-bold">{sig.T1}</span>
-                            <span className="text-zinc-700">/</span>
-                            <span className="text-indigo-400 font-bold">{sig.T2}</span>
+                        <td className="px-10 py-8 font-black text-lg">{sig.LTP || sig.Entry_LTP}</td>
+                        <td className="px-10 py-8 text-right">
+                          <div className="space-y-1">
+                            <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{sig.T1} <span className="text-zinc-700 mx-1">/</span> {sig.T2}</div>
+                            <div className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">Threat: {sig.SL}</div>
                           </div>
                         </td>
                       </tr>
                     ))}
-                    {signals.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-8 py-32 text-center text-zinc-600 italic">
-                          No active signals in matrix. Waiting for trend confirmation.
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="col-span-12 lg:col-span-4 space-y-8">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-6 flex items-center gap-2">
-                <Bell className="w-4 h-4" /> Intel Feed
-              </h3>
-              <div className="space-y-4">
-                {signals.slice(0, 3).map((sig, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-indigo-400">{sig.Strike}</span>
-                      <ArrowUpRight className="w-3 h-3 text-zinc-600" />
-                    </div>
-                    <p className="text-xs text-zinc-500">Structural 9-EMA pullback detected on {sig.Strike}. Alignment is confirmed.</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-indigo-600 rounded-2xl p-6 text-white overflow-hidden relative group cursor-pointer hover:bg-indigo-500 transition-colors">
-              <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-              <div className="relative">
-                <h3 className="text-sm font-bold uppercase tracking-widest opacity-80 mb-2">Weekly Summary</h3>
-                <div className="text-3xl font-bold">+₹24.4k</div>
-                <div className="mt-4 flex items-center gap-1 text-xs font-bold">
-                  View full report <ArrowRight className="w-3 h-3" />
-                </div>
-              </div>
+          {/* Intel Sidebar: Floating Glass Cards */}
+          <div className="col-span-12 lg:col-span-3 space-y-8">
+            <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 backdrop-blur-2xl p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
+               <div className="absolute top-[-20px] right-[-20px] w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+               <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6 flex items-center gap-2">
+                 <Bell className="w-4 h-4" /> Global Intel
+               </h3>
+               <div className="space-y-6">
+                 {signals.slice(0, 3).map((sig, i) => (
+                   <div key={i} className="space-y-2 border-l-2 border-blue-500/30 pl-4 py-1">
+                      <div className="text-[10px] font-black text-blue-400 uppercase">{sig.Strike}</div>
+                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">Structural confirmation lock. Delta expansion imminent.</p>
+                   </div>
+                 ))}
+               </div>
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* Modern Settings Modal */}
+      {/* HQ Command Modal: Fluid Glass */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-6">
-          <div className="bg-zinc-900 border border-zinc-800 p-8 w-full max-w-xl rounded-2xl shadow-2xl">
-            <div className="flex items-center gap-3 mb-8">
-              <Lock className="w-6 h-6 text-indigo-500" />
-              <h2 className="text-2xl font-bold">Management HQ</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-3xl flex items-center justify-center z-[200] p-12 overflow-y-auto">
+          <div className="bg-white/[0.02] border border-white/20 p-12 w-full max-w-2xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] relative">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+            <div className="flex items-center gap-4 mb-12">
+              <Lock className="w-8 h-8 text-blue-500" />
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Security Protocol</h2>
             </div>
             
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6 font-medium text-sm">
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2 tracking-wider">GitHub Secret</label>
-                  <input type="password" value={gitToken} onChange={(e) => setGitToken(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-xl focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2 tracking-wider">Groww Secret</label>
-                  <input type="password" value={growwSecret} onChange={(e) => setGrowwSecret(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-xl focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2 tracking-wider">Groww Token</label>
-                  <input type="password" value={growwToken} onChange={(e) => setGrowwToken(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-xl focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2 tracking-wider">Gemini Key</label>
-                  <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 p-3 rounded-xl focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-8 mb-12">
+               <InputBlock label="GitHub Sync" value={gitToken} setter={setGitToken} colSpan={2} />
+               <InputBlock label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
+               <InputBlock label="Groww Token" value={growwToken} setter={setGrowwToken} />
+               <InputBlock label="Gemini Key" value={geminiKey} setter={setGeminiKey} colSpan={2} />
             </div>
 
-            <div className="flex gap-4 mt-10">
+            <div className="flex gap-6">
               <button 
                 onClick={saveSettings}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all"
+                className="flex-1 bg-white text-black font-black py-6 rounded-3xl hover:bg-blue-500 hover:text-white transition-all uppercase tracking-[.2em] text-xs shadow-xl shadow-white/5 active:scale-95"
               >
-                Save Protocol
+                Launch Protocol
               </button>
               <button 
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-8 py-4 text-zinc-500 font-bold transition-all"
+                className="px-10 py-6 border border-white/10 rounded-3xl text-zinc-500 font-black hover:text-white transition-colors"
               >
-                Cancel
+                Abort
               </button>
             </div>
           </div>
@@ -263,15 +236,30 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ icon, label, value, trend, iconBg = "bg-zinc-800" }: { icon: React.ReactNode, label: string, value: string, trend: string, iconBg?: string }) {
+function StatPanel({ icon, label, value, sub }: { icon: React.ReactNode, label: string, value: string, sub: string }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl hover:border-zinc-700 transition-all group">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-2 rounded-lg ${iconBg} group-hover:bg-zinc-700 transition-colors`}>{icon}</div>
-        <span className="text-xs font-bold text-emerald-500">{trend}</span>
+    <div className="group relative bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/20 backdrop-blur-3xl p-8 rounded-[2rem] transition-all cursor-default overflow-hidden">
+      <div className="absolute bottom-[-10px] right-[-10px] opacity-10 group-hover:opacity-40 transition-opacity transform group-hover:scale-150 duration-700">
+         {React.cloneElement(icon as React.ReactElement, { className: "w-16 h-16" })}
       </div>
-      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">{label}</h3>
-      <div className="text-2xl font-bold">{value}</div>
+      <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em] mb-3">{label}</h3>
+      <div className="text-3xl font-black italic tracking-tighter mb-2">{value}</div>
+      <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{sub}</div>
+    </div>
+  )
+}
+
+function InputBlock({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
+  return (
+    <div className={`${colSpan === 2 ? 'col-span-2' : 'col-span-1'} space-y-3`}>
+      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-2">{label}</label>
+      <input 
+        type="password"
+        value={value}
+        onChange={(e) => setter(e.target.value)}
+        className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50 transition-all placeholder:text-zinc-800"
+        placeholder="••••••••••••"
+      />
     </div>
   )
 }
