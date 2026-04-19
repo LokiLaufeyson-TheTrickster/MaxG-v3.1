@@ -34,6 +34,10 @@ interface Signal {
 export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [gitToken, setGitToken] = useState("");
+  const [growwSecret, setGrowwSecret] = useState("");
+  const [growwToken, setGrowwToken] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
+  
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,10 +59,19 @@ export default function Dashboard() {
     fetchSignals();
     const savedToken = localStorage.getItem("maxg_gh_token");
     if (savedToken) setGitToken(savedToken);
+    const savedGSecret = localStorage.getItem("maxg_groww_secret");
+    if (savedGSecret) setGrowwSecret(savedGSecret);
+    const savedGToken = localStorage.getItem("maxg_groww_token");
+    if (savedGToken) setGrowwToken(savedGToken);
+    const savedGemini = localStorage.getItem("maxg_gemini_key");
+    if (savedGemini) setGeminiKey(savedGemini);
   }, []);
 
   const saveSettings = () => {
     localStorage.setItem("maxg_gh_token", gitToken);
+    localStorage.setItem("maxg_groww_secret", growwSecret);
+    localStorage.setItem("maxg_groww_token", growwToken);
+    localStorage.setItem("maxg_gemini_key", geminiKey);
     setIsSettingsOpen(false);
   };
 
@@ -88,17 +101,12 @@ export default function Dashboard() {
         </div>
         
         <div className="flex items-center gap-6">
-          <div className="hidden lg:flex items-center gap-4 text-[11px] font-medium text-gray-500 uppercase tracking-widest">
-            <span className="hover:text-blue-400 cursor-pointer transition-colors">Matrix</span>
-            <span className="hover:text-blue-400 cursor-pointer transition-colors">Tactical</span>
-            <span className="hover:text-blue-400 cursor-pointer transition-colors">Archive</span>
-          </div>
-          <div className="h-6 w-[1px] bg-white/10 mx-2" />
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-white active:scale-95"
+            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-white active:scale-95 flex items-center gap-3 px-4"
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4 h-4" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">HQ_Config</span>
           </button>
         </div>
       </nav>
@@ -154,31 +162,16 @@ export default function Dashboard() {
                       <span className="text-sm font-bold text-white tracking-tight">{sig.Strike}</span>
                       <div className="p-1 px-2 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-lg uppercase tracking-tighter">Verified</div>
                     </div>
-                    <p className="text-xs text-gray-500 leading-relaxed font-medium">9-EMA Hook detected. Alpha capture in progress. Target T1 alignment 100%.</p>
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">9-EMA Hook detected. Alpha capture in progress.</p>
                   </div>
                 ))}
               </div>
             </section>
-
-            {/* System Status Glass */}
-            <div className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl">
-              <div className="flex items-center gap-3 mb-6">
-                <Activity className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-400">System State</h3>
-              </div>
-              <div className="space-y-4 text-xs font-medium">
-                <StatusItem label="Groww Session" state="Secure" />
-                <StatusItem label="AIP Audit" state="Active" />
-                <StatusItem label="ntfy Link" state="Deploying" />
-              </div>
-            </div>
           </div>
 
           {/* Main Matrix: Large Aero Glass Container */}
           <div className="col-span-12 lg:col-span-9">
             <section className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[3rem] shadow-2xl overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.05] to-transparent pointer-events-none" />
-              
               <div className="px-10 py-8 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-blue-500/20 shadow-lg">
@@ -186,7 +179,6 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h2 className="font-black text-2xl tracking-tighter uppercase italic">Operational Matrix</h2>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Regime-Sync Protocol Active</p>
                   </div>
                 </div>
                 <button 
@@ -212,53 +204,16 @@ export default function Dashboard() {
                     {signals.map((sig, i) => (
                       <tr key={i} className="hover:bg-white/[0.03] transition-all group">
                         <td className="px-10 py-8">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold text-white mb-1">Trade Vector {i + 1}</span>
-                            <span className="text-[11px] font-mono text-gray-500">{sig.Time || sig.Timestamp}</span>
-                          </div>
+                          <span className="text-[11px] font-mono text-gray-500">{sig.Time || sig.Timestamp}</span>
                         </td>
-                        <td className="px-10 py-8">
-                          <div className="flex items-center gap-4">
-                            <div className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-xl text-sm font-black tracking-tighter">
-                              {sig.Strike}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-10 py-8 text-center">
-                          <div className="text-lg font-black text-white bg-clip-text">
-                            {sig.LTP || sig.Entry_LTP}
-                          </div>
-                        </td>
-                        <td className="px-10 py-8 text-center text-red-500/80 font-bold text-sm tracking-tighter">
-                          {sig.SL}
-                        </td>
-                        <td className="px-10 py-8">
-                          <div className="flex items-center justify-end gap-6">
-                            <div className="text-right">
-                              <div className="text-lg font-black text-emerald-400 drop-shadow-lg">{sig.T1}</div>
-                              <div className="text-[10px] font-black text-zinc-600 uppercase italic tracking-tighter">Alpha I</div>
-                            </div>
-                            <div className="h-8 w-[1px] bg-white/10" />
-                            <div className="text-right">
-                              <div className="text-lg font-black text-blue-400 drop-shadow-lg">{sig.T2}</div>
-                              <div className="text-[10px] font-black text-zinc-600 uppercase italic tracking-tighter">Alpha II</div>
-                            </div>
-                          </div>
+                        <td className="px-10 py-8 italic font-black text-blue-400">{sig.Strike}</td>
+                        <td className="px-10 py-8 text-center font-bold">{sig.LTP || sig.Entry_LTP}</td>
+                        <td className="px-10 py-8 text-center text-red-500 font-bold">{sig.SL}</td>
+                        <td className="px-10 py-8 text-right">
+                          <span className="text-emerald-400 font-black">{sig.T1}</span> / <span className="text-blue-400 font-black">{sig.T2}</span>
                         </td>
                       </tr>
                     ))}
-                    {signals.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-10 py-40 text-center">
-                          <div className="flex flex-col items-center gap-6 opacity-40">
-                            <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center animate-pulse">
-                              <Cpu className="w-10 h-10 text-gray-500" />
-                            </div>
-                            <p className="text-lg font-medium italic text-gray-500 tracking-tight">Regime Scanning: No verified assets in flight...</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
@@ -267,10 +222,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Settings Modal: Deep Morphic Glass */}
+      {/* Settings Modal: THE UPGRADED MULTI-VECTOR HUB */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-3xl flex items-center justify-center z-[100] p-10">
-          <div className="bg-[#0A0C10] border border-white/10 p-12 w-full max-w-xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] relative overflow-hidden">
+          <div className="bg-[#0A0C10] border border-white/10 p-12 w-full max-w-2xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-indigo-600" />
             <div className="flex items-center gap-4 mb-10">
               <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
@@ -278,28 +233,63 @@ export default function Dashboard() {
               </div>
               <h2 className="text-3xl font-black tracking-tight uppercase italic">Security Hub</h2>
             </div>
-            <div className="space-y-10">
-              <div>
-                <label className="block text-[11px] font-black text-gray-500 uppercase mb-4 tracking-[0.3em]">GitHub Intelligence Link</label>
+            
+            <div className="grid grid-cols-2 gap-8 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+              <div className="col-span-2 space-y-3">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-2">GitHub Sync Token</label>
                 <input 
                   type="password"
                   value={gitToken}
                   onChange={(e) => setGitToken(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] text-blue-400 font-mono text-lg focus:outline-none focus:border-blue-600/50 focus:bg-white/[0.05] transition-all placeholder:text-gray-700"
-                  placeholder="GHP_SECURITY_TOKEN"
+                  className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50"
+                  placeholder="GHP_REDACTED"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-2">Groww TOTP Secret</label>
+                <input 
+                  type="password"
+                  value={growwSecret}
+                  onChange={(e) => setGrowwSecret(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50"
+                  placeholder="2FA_SECRET"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-2">Groww Token</label>
+                <input 
+                  type="password"
+                  value={growwToken}
+                  onChange={(e) => setGrowwToken(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50"
+                  placeholder="ACCESS_TOKEN"
+                />
+              </div>
+
+              <div className="col-span-2 space-y-3">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-2">Gemini AIP Master Key</label>
+                <input 
+                  type="password"
+                  value={geminiKey}
+                  onChange={(e) => setGeminiKey(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50"
+                  placeholder="AI_ACCESS_KEY"
                 />
               </div>
             </div>
-            <div className="flex gap-6 mt-16">
+
+            <div className="flex gap-6 mt-12">
               <button 
                 onClick={saveSettings}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-6 rounded-[2rem] transition-all uppercase text-sm tracking-widest shadow-xl shadow-blue-900/20 hover:scale-105 active:scale-95"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-6 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all uppercase text-xs tracking-[0.2em]"
               >
                 Launch Synchronizer
               </button>
               <button 
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-10 py-6 border border-white/10 text-gray-500 hover:text-white rounded-[2rem] uppercase text-[11px] font-bold tracking-widest transition-all hover:bg-white/5 active:scale-95"
+                className="px-10 py-6 border border-white/10 text-gray-500 hover:text-white rounded-2xl transition-all"
               >
                 Abort
               </button>
@@ -316,7 +306,7 @@ function MetricCard({ icon, label, value, subValue, color }: { icon: React.React
     <div className="bg-white/[0.03] border border-white/10 p-8 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden group hover:border-white/20 transition-all cursor-default shadow-2xl">
       <div className={`absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br ${color} rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity`} />
       <div className="flex items-center justify-between mb-6">
-        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform shadow-lg backdrop-blur-xl">
+        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
           {icon}
         </div>
         <ChevronRight className="w-4 h-4 text-gray-700" />
@@ -324,15 +314,6 @@ function MetricCard({ icon, label, value, subValue, color }: { icon: React.React
       <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">{label}</h3>
       <div className="text-4xl font-black text-white tracking-tighter mb-1">{value}</div>
       <div className="text-[11px] font-bold text-gray-600 tracking-tight uppercase italic">{subValue}</div>
-    </div>
-  )
-}
-
-function StatusItem({ label, state }: { label: string, state: string }) {
-  return (
-    <div className="flex justify-between items-center py-3 border-b border-white/[0.02]">
-      <span className="text-gray-500 uppercase tracking-widest text-[9px] font-bold">{label}</span>
-      <span className="text-emerald-400 font-bold tracking-tight bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">{state}</span>
     </div>
   )
 }
