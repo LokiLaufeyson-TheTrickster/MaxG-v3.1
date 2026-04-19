@@ -1,20 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, 
   Settings, 
-  ArrowUpRight, 
+  TrendingUp, 
+  Activity, 
+  Cpu, 
+  Lock, 
+  ArrowRight, 
   RefreshCw,
-  Lock,
-  ArrowRight,
-  TrendingUp,
   Zap,
-  Activity,
-  Box,
-  Circle,
-  Gem,
-  Cpu
+  MousePointer2
 } from 'lucide-react';
 
 interface Signal {
@@ -29,12 +26,79 @@ interface Signal {
   SL: number;
 }
 
+// --- CANVAS PARTICLE ENGINE ---
+const ParticleSystem = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let particles: any[] = [];
+    const particleCount = 60;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    class Particle {
+      x: number; y: number; vx: number; vy: number; size: number;
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = (Math.random() - 0.5) * 0.5;
+        this.size = Math.random() * 2;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+      }
+      draw() {
+        if (!ctx) return;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
+        ctx.fill();
+      }
+    }
+
+    const init = () => {
+      particles = [];
+      for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('resize', resize);
+    resize();
+    init();
+    animate();
+
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />;
+};
+
 export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Credentials State
+  // Credentials
   const [gitToken, setGitToken] = useState("");
   const [growwSecret, setGrowwSecret] = useState("");
   const [growwToken, setGrowwToken] = useState("");
@@ -49,17 +113,18 @@ export default function Dashboard() {
       }
     } catch (e) {
       console.error("Fetch failed", e);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSignals();
+    const handleMouse = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', handleMouse);
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
+    return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
   const saveSettings = () => {
@@ -71,172 +136,128 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen text-white font-sans selection:bg-purple-500/30 overflow-x-hidden relative" style={{ backgroundColor: '#020205' }}>
+    <main className="min-h-screen bg-[#07080B] text-[#E4E4E7] font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
       
-      {/* MANUAL NEBULA MESH - INLINE CSS FOR FIDELITY */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div 
-          className="absolute top-[-10%] right-[-10%] w-[100%] h-[100%] opacity-40 animate-pulse"
-          style={{ 
-            background: 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(30, 58, 138, 0.2) 40%, transparent 70%)',
-            filter: 'blur(120px)'
-          }}
-        />
-        <div 
-          className="absolute bottom-[-10%] left-[-10%] w-[80%] h-[80%] opacity-30"
-          style={{ 
-            background: 'radial-gradient(circle at center, rgba(30, 64, 175, 0.4) 0%, rgba(17, 24, 39, 0.1) 60%, transparent 80%)',
-            filter: 'blur(140px)'
-          }}
-        />
-        <div 
-          className="absolute top-[20%] left-[20%] w-[400px] h-[400px] opacity-20"
-          style={{ 
-            background: 'radial-gradient(circle at center, rgba(56, 189, 248, 0.3) 0%, transparent 70%)',
-            filter: 'blur(100px)'
-          }}
-        />
-      </div>
+      <ParticleSystem />
 
-      {/* FLOATING ART OBJECTS */}
-      <div className="fixed inset-0 z-[1] pointer-events-none">
-        <div className="absolute top-[10%] right-[15%] w-32 h-32 bg-white/5 rounded-full backdrop-blur-3xl border border-white/10 animate-bounce" style={{ animationDuration: '10s' }} />
-        <div className="absolute bottom-[30%] left-[10%] w-48 h-48 bg-purple-500/5 rounded-full backdrop-blur-3xl border border-white/5" />
-      </div>
+      {/* CURSOR SPOTLIGHT */}
+      <div 
+        className="fixed pointer-events-none z-10 w-[600px] h-[600px] bg-indigo-600/5 blur-[120px] rounded-full transition-opacity duration-500"
+        style={{ left: mousePos.x - 300, top: mousePos.y - 300 }}
+      />
 
-      <nav className="h-28 flex items-center justify-between px-20 relative z-[100]">
-        <div className="flex items-center gap-16">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-              <Shield className="w-7 h-7 text-black font-black" />
-            </div>
-            <span className="text-3xl font-black tracking-tighter uppercase italic leading-none">MaxG<span className="text-zinc-500">_SENTINEL</span></span>
+      <nav className="h-20 flex items-center justify-between px-12 relative z-[100] border-b border-white/5 bg-[#07080B]/50 backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Shield className="w-6 h-6 text-white" />
           </div>
-          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500">
-            <span className="text-white hover:text-purple-400 cursor-pointer transition-all">Intelligence</span>
-            <span className="hover:text-white transition-all cursor-pointer">The Vault</span>
-            <span className="hover:text-white transition-all cursor-pointer">Protocol</span>
-          </div>
+          <span className="text-xl font-bold tracking-tight">MAXG <span className="text-zinc-500 font-normal underline decoration-indigo-500 underline-offset-4">SENTINEL</span></span>
         </div>
         
         <button 
           onClick={() => setIsSettingsOpen(true)}
-          className="w-16 h-16 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all shadow-xl"
+          className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 transition-all text-zinc-400 hover:text-white"
         >
-          <Settings className="w-6 h-6 text-zinc-400" />
+          <Settings className="w-5 h-5" />
         </button>
       </nav>
 
-      <div className="relative z-10 max-w-[1600px] mx-auto px-20 py-20 pb-40">
-        <div className="grid grid-cols-12 gap-24 items-start">
-          
-          {/* HERO SECTION - REPLICATING "POWERFUL. COLORFUL. WONDERFUL." */}
-          <div className="col-span-12 lg:col-span-7 space-y-16">
-            <div className="space-y-6">
-               <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-purple-500/10 rounded-full border border-purple-500/30">
-                  <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-ping" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Tactical Core Synced</span>
-               </div>
-               <h1 className="text-[11rem] font-black leading-[0.85] tracking-tight uppercase" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.05)' }}>
-                  Heavy.<br />
-                  <span className="italic" style={{ background: 'linear-gradient(135deg, #fff 30%, #a855f7 60%, #3b82f6 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    Capture.
-                  </span>
-               </h1>
-               <p className="text-zinc-500 text-3xl font-medium max-w-2xl leading-normal">
-                 Institutional alpha capture platform engineered for asymmetric multi-regime monitoring.
-               </p>
-            </div>
+      <div className="max-w-[1400px] mx-auto p-12 space-y-12 relative z-20">
+        
+        {/* HERO SECTION */}
+        <div className="space-y-4">
+           <h1 className="text-8xl font-black tracking-tightest leading-none">
+             FLUID <span className="text-indigo-500 italic">ALPHA.</span>
+           </h1>
+           <p className="text-zinc-500 text-xl max-w-2xl font-medium antialiased text-balance">
+             Structural intelligence capture engine. Scaled via asymmetric multi-regime monitoring and Gemini-Flash precision.
+           </p>
+        </div>
 
-            <div className="flex gap-10 pt-4">
-               <button className="group flex items-center h-24 bg-white text-black px-12 rounded-[2.5rem] font-black uppercase tracking-[.2em] text-sm hover:scale-105 transition-all shadow-[0_30px_60px_-15px_rgba(255,255,255,0.3)]">
-                 Regime Hub <ArrowRight className="ml-4 w-6 h-6 group-hover:translate-x-2 transition-transform" />
-               </button>
-               <button className="h-24 px-12 rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-3xl font-black uppercase tracking-[.2em] text-sm hover:bg-white/10 transition-all">
-                 System.Vault
-               </button>
-            </div>
+        {/* DATA MODULES */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           <FluidCard icon={<TrendingUp />} label="Captured Alpha" value="+₹24,423" color="indigo" />
+           <FluidCard icon={<Activity />} label="Trend Lock" value="89.4%" color="purple" />
+           <FluidCard icon={<Cpu />} label="Engine Latency" value="9ms" color="emerald" />
+        </div>
 
-            <div className="grid grid-cols-3 gap-16 pt-20 border-t border-white/5">
-               <StatNode icon={<TrendingUp className="text-purple-400" />} label="Alpha Gain" value="+₹24,423" />
-               <StatNode icon={<Activity className="text-blue-400" />} label="Confidence" value="89.4%" />
-               <StatNode icon={<Cpu className="text-teal-400" />} label="Latency" value="9ms" />
-            </div>
-          </div>
-
-          {/* FLOATING GLASS MATRIX */}
-          <div className="col-span-12 lg:col-span-5 relative group">
-              <div className="absolute -inset-20 bg-purple-500/20 blur-[120px] rounded-full opacity-50 animate-pulse pointer-events-none" />
-              <div className="relative bg-white/[0.04] border border-white/10 backdrop-blur-[80px] rounded-[5rem] p-16 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-t-white/30 overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] pointer-events-none" />
-                  
-                  <div className="flex items-center justify-between mb-16">
-                     <div>
-                        <h3 className="text-[10px] font-black uppercase tracking-[.4em] text-zinc-500 mb-2 italic">Active Feed</h3>
-                        <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Operational <br /> Matrix.</h2>
-                     </div>
-                     <RefreshCw onClick={fetchSignals} className="w-6 h-6 text-zinc-500 hover:text-white transition-all cursor-pointer" />
-                  </div>
-
-                  <div className="space-y-4">
-                     {signals.slice(0, 5).map((sig, i) => (
-                       <div key={i} className="flex items-center justify-between p-8 bg-black/20 border border-white/5 rounded-[3rem] hover:bg-white/10 transition-all cursor-pointer group/row">
-                          <div className="flex items-center gap-8">
-                             <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center transform group-hover/row:scale-110 transition-all shadow-xl">
-                                <Zap className="w-6 h-6 text-purple-400" />
-                             </div>
-                             <div>
-                                <div className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">{sig.Time || sig.Timestamp}</div>
-                                <div className="text-2xl font-black italic tracking-tighter uppercase text-white tracking-widest leading-none">{sig.Strike}</div>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <div className="text-[10px] font-black uppercase text-zinc-600 mb-1">Vector</div>
-                             <div className="text-3xl font-black italic text-zinc-100">{sig.LTP || sig.Entry_LTP}</div>
-                          </div>
-                       </div>
-                     ))}
-                     {signals.length === 0 && (
-                       <div className="py-24 text-center space-y-4 opacity-30 italic">
-                          <RefreshCw className="w-8 h-8 mx-auto animate-spin" />
-                          <p className="text-xs font-black uppercase tracking-[.3em]">Scanning Multiverse...</p>
-                       </div>
-                     )}
-                  </div>
+        <div className="grid grid-cols-12 gap-8">
+           {/* SIGNAL STREAM */}
+           <div className="col-span-12 lg:col-span-8 bg-zinc-900/40 border border-white/5 backdrop-blur-3xl rounded-[2.5rem] p-10 shadow-2xl overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl group-hover:bg-indigo-500/20 transition-all" />
+              <div className="flex items-center justify-between mb-10">
+                 <h2 className="text-3xl font-bold tracking-tight italic">Operational <span className="text-indigo-500">Stream.</span></h2>
+                 <RefreshCw onClick={fetchSignals} className="w-5 h-5 text-zinc-600 cursor-pointer hover:text-white transition-colors" />
               </div>
-          </div>
+
+              <div className="space-y-4">
+                 {signals.map((sig, i) => (
+                   <div key={i} className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.05] transition-all group/row">
+                      <div className="flex items-center gap-6">
+                         <div className="text-sm font-mono text-zinc-600">{sig.Time || sig.Timestamp}</div>
+                         <div className="text-xl font-bold tracking-tight underline decoration-indigo-500/50 decoration-2 underline-offset-4 uppercase">{sig.Strike}</div>
+                      </div>
+                      <div className="text-2xl font-bold text-zinc-100 italic tracking-tighter">{sig.LTP || sig.Entry_LTP}</div>
+                   </div>
+                 ))}
+                 {signals.length === 0 && <div className="py-20 text-center text-zinc-600">Scanning market structural regimes...</div>}
+              </div>
+           </div>
+
+           {/* INTEL FEED */}
+           <div className="col-span-12 lg:col-span-4 bg-zinc-900/40 border border-white/5 backdrop-blur-3xl rounded-[2.5rem] p-10 flex flex-col justify-between">
+              <div>
+                 <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-8">AI Intelligence</h3>
+                 <div className="space-y-6">
+                    {signals.slice(0, 3).map((sig, i) => (
+                      <p key={i} className="text-sm text-zinc-400 leading-relaxed border-l-2 border-indigo-500 pl-4">
+                        Structural 9-EMA pullback confirmed on {sig.Strike}. Regime delta is positive.
+                      </p>
+                    ))}
+                 </div>
+              </div>
+              <button className="mt-12 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
+                 View Live Audit
+              </button>
+           </div>
         </div>
       </div>
 
-      {/* MANUAL OVERRIDE SECURITY MODAL */}
+      {/* SECURITY HQ MODAL */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-[100px] flex items-center justify-center z-[200] p-12 overflow-y-auto">
-          <div className="bg-[#050510] border border-white/20 p-24 w-full max-w-5xl rounded-[6rem] shadow-[0_0_120px_rgba(139,92,246,0.3)] relative text-center">
-             <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full" />
-             <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 blur-[150px] rounded-full" />
-             
-             <div className="w-32 h-32 bg-white rounded-[3rem] flex items-center justify-center shadow-2xl shadow-purple-500/20 mb-12 mx-auto">
-                <Lock className="w-12 h-12 text-black" />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-3xl flex items-center justify-center z-[200] p-6">
+          <div className="bg-zinc-900 border border-zinc-800 p-12 w-full max-w-2xl rounded-[3rem] shadow-2xl relative">
+             <div className="flex items-center gap-4 mb-10">
+                <Lock className="w-8 h-8 text-indigo-500" />
+                <h2 className="text-3xl font-bold tracking-tighter italic">Auth HQ.</h2>
              </div>
              
-             <h2 className="text-7xl font-black tracking-tighter uppercase italic mb-4">Security Headquarters</h2>
-             <p className="text-zinc-500 font-black uppercase tracking-[.6em] text-xs mb-20">Credential Matrix Synchronization</p>
-
-             <div className="grid grid-cols-2 gap-x-12 gap-y-12 w-full text-left mb-20 px-8">
-               <ApexInput label="GitHub Master" value={gitToken} setter={setGitToken} colSpan={2} />
-               <ApexInput label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
-               <ApexInput label="Groww Token" value={growwToken} setter={setGrowwToken} />
-               <ApexInput label="Gemini AI Manifest" value={geminiKey} setter={setGeminiKey} colSpan={2} />
+             <div className="grid grid-cols-2 gap-8 mb-12">
+                <div className="col-span-2">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">GitHub Personal Access Token</label>
+                   <input type="password" value={gitToken} onChange={(e) => setGitToken(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
+                </div>
+                <div className="col-span-1">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Groww Secret</label>
+                   <input type="password" value={growwSecret} onChange={(e) => setGrowwSecret(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
+                </div>
+                <div className="col-span-1">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Groww Session</label>
+                   <input type="password" value={growwToken} onChange={(e) => setGrowwToken(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
+                </div>
+                <div className="col-span-2">
+                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Gemini API Audit Key</label>
+                   <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
+                </div>
              </div>
 
-             <div className="flex gap-10 justify-center">
-                <button 
-                  onClick={saveSettings}
-                  className="h-28 bg-white text-black px-24 rounded-[3rem] font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl"
-                >
-                  Authorize Sync
-                </button>
-                <button onClick={() => setIsSettingsOpen(false)} className="px-12 py-6 text-xs font-black uppercase text-zinc-500 hover:text-white transition-all">Dismiss</button>
+             <div className="flex gap-4">
+                <button onClick={saveSettings} className="flex-1 py-5 bg-indigo-600 rounded-2xl font-bold text-sm tracking-widest uppercase">Save Authentication</button>
+                <button onClick={() => setIsSettingsOpen(false)} className="px-10 py-5 text-zinc-500 font-bold">Abort</button>
              </div>
           </div>
         </div>
@@ -245,33 +266,20 @@ export default function Dashboard() {
   );
 }
 
-function StatNode({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
-  return (
-    <div className="space-y-6 group cursor-default">
-       <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-[2.5rem] backdrop-blur-2xl flex items-center justify-center shadow-lg group-hover:bg-white/10 transition-all">
-          {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
-       </div>
-       <div className="space-y-1">
-         <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[.4em] leading-none mb-2">{label}</h4>
-         <div className="text-5xl font-black italic tracking-tighter text-white group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-purple-500 transition-all">
-          {value}
-         </div>
-       </div>
-    </div>
-  )
-}
+function FluidCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string, color: string }) {
+  const colorMap: any = {
+    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    purple: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+  };
 
-function ApexInput({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
   return (
-    <div className={`${colSpan === 2 ? 'col-span-2' : 'col-span-1'} space-y-4`}>
-       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[.6em] pl-10 italic">{label}</label>
-       <input 
-         type="password"
-         value={value}
-         onChange={(e) => setter(e.target.value)}
-         className="w-full bg-white/5 border border-white/10 p-10 rounded-[3.5rem] text-purple-400 font-mono text-lg focus:outline-none focus:border-purple-500/60 focus:bg-white/10 transition-all"
-         placeholder="••••••••••••"
-       />
+    <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-3xl p-8 rounded-[2rem] hover:border-white/20 transition-all group">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border ${colorMap[color]}`}>
+        {React.cloneElement(icon as React.ReactElement<any>, { className: "w-6 h-6" })}
+      </div>
+      <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">{label}</h3>
+      <div className="text-3xl font-bold tracking-tighter">{value}</div>
     </div>
   )
 }
