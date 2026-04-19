@@ -240,7 +240,7 @@ function StatPanel({ icon, label, value, sub }: { icon: React.ReactNode, label: 
   return (
     <div className="group relative bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/20 backdrop-blur-3xl p-8 rounded-[2rem] transition-all cursor-default overflow-hidden">
       <div className="absolute bottom-[-10px] right-[-10px] opacity-10 group-hover:opacity-40 transition-opacity transform group-hover:scale-150 duration-700">
-         {React.cloneElement(icon as React.ReactElement, { className: "w-16 h-16" })}
+         {React.cloneElement(icon as React.ReactElement<any>, { className: "w-16 h-16" })}
       </div>
       <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em] mb-3">{label}</h3>
       <div className="text-3xl font-black italic tracking-tighter mb-2">{value}</div>
