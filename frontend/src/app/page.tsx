@@ -13,7 +13,8 @@ import {
   Activity,
   Box,
   Circle,
-  Gem
+  Gem,
+  Cpu
 } from 'lucide-react';
 
 interface Signal {
@@ -70,163 +71,172 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#020205] text-white font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
+    <main className="min-h-screen text-white font-sans selection:bg-purple-500/30 overflow-x-hidden relative" style={{ backgroundColor: '#020205' }}>
       
-      {/* DYNAMIC MESH BACKGROUND */}
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
-        <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-gradient-to-br from-indigo-900 via-purple-900 to-transparent blur-[160px] animate-pulse rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] bg-gradient-to-tr from-blue-900 via-teal-900 to-transparent blur-[160px] rounded-full" />
-        <div className="absolute top-[20%] right-[20%] w-[300px] h-[300px] bg-sky-500/10 blur-[100px] rounded-full" />
+      {/* MANUAL NEBULA MESH - INLINE CSS FOR FIDELITY */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute top-[-10%] right-[-10%] w-[100%] h-[100%] opacity-40 animate-pulse"
+          style={{ 
+            background: 'radial-gradient(circle at center, rgba(139, 92, 246, 0.4) 0%, rgba(30, 58, 138, 0.2) 40%, transparent 70%)',
+            filter: 'blur(120px)'
+          }}
+        />
+        <div 
+          className="absolute bottom-[-10%] left-[-10%] w-[80%] h-[80%] opacity-30"
+          style={{ 
+            background: 'radial-gradient(circle at center, rgba(30, 64, 175, 0.4) 0%, rgba(17, 24, 39, 0.1) 60%, transparent 80%)',
+            filter: 'blur(140px)'
+          }}
+        />
+        <div 
+          className="absolute top-[20%] left-[20%] w-[400px] h-[400px] opacity-20"
+          style={{ 
+            background: 'radial-gradient(circle at center, rgba(56, 189, 248, 0.3) 0%, transparent 70%)',
+            filter: 'blur(100px)'
+          }}
+        />
       </div>
 
-      {/* FLOATING 3D-ISH LUMENS */}
-      <div className="fixed inset-0 z-[1] pointer-events-none overflow-hidden">
-        <div className="absolute top-[15%] right-[10%] w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl animate-bounce" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[20%] left-[5%] w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse" />
+      {/* FLOATING ART OBJECTS */}
+      <div className="fixed inset-0 z-[1] pointer-events-none">
+        <div className="absolute top-[10%] right-[15%] w-32 h-32 bg-white/5 rounded-full backdrop-blur-3xl border border-white/10 animate-bounce" style={{ animationDuration: '10s' }} />
+        <div className="absolute bottom-[30%] left-[10%] w-48 h-48 bg-purple-500/5 rounded-full backdrop-blur-3xl border border-white/5" />
       </div>
 
-      {/* MINIMALIST AURA NAV */}
       <nav className="h-28 flex items-center justify-between px-20 relative z-[100]">
         <div className="flex items-center gap-16">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Shield className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+              <Shield className="w-7 h-7 text-black font-black" />
             </div>
-            <span className="text-2xl font-black tracking-tightest uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40">MaxG Sentinel.</span>
+            <span className="text-3xl font-black tracking-tighter uppercase italic leading-none">MaxG<span className="text-zinc-500">_SENTINEL</span></span>
           </div>
-          <div className="hidden lg:flex items-center gap-12 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">
-             <span className="text-white relative cursor-pointer group">
-               Intelligence
-               <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-gradient-to-r from-purple-500 to-blue-500" />
-             </span>
-             <span className="hover:text-white transition-all cursor-pointer">The Vault</span>
-             <span className="hover:text-white transition-all cursor-pointer">Protocol</span>
+          <div className="hidden lg:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.5em] text-zinc-500">
+            <span className="text-white hover:text-purple-400 cursor-pointer transition-all">Intelligence</span>
+            <span className="hover:text-white transition-all cursor-pointer">The Vault</span>
+            <span className="hover:text-white transition-all cursor-pointer">Protocol</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-8">
-           <button 
-             onClick={() => setIsSettingsOpen(true)}
-             className="w-14 h-14 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl flex items-center justify-center hover:bg-white/10 transition-all active:scale-90"
-           >
-             <Settings className="w-6 h-6 text-white/60" />
-           </button>
-        </div>
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="w-16 h-16 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all shadow-xl"
+        >
+          <Settings className="w-6 h-6 text-zinc-400" />
+        </button>
       </nav>
 
-      <div className="relative z-10 max-w-[1600px] mx-auto px-20 py-12 space-y-24">
-        
-        {/* HERO SECTION: POWERFUL. COLORFUL. WONDERFUL. */}
-        <div className="grid grid-cols-12 gap-20 items-center">
-            <div className="col-span-12 lg:col-span-7 space-y-12">
-               <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 rounded-full border border-purple-500/20">
-                     <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
-                     <span className="text-[10px] uppercase font-black tracking-widest text-purple-400">Secure Live Node</span>
+      <div className="relative z-10 max-w-[1600px] mx-auto px-20 py-20 pb-40">
+        <div className="grid grid-cols-12 gap-24 items-start">
+          
+          {/* HERO SECTION - REPLICATING "POWERFUL. COLORFUL. WONDERFUL." */}
+          <div className="col-span-12 lg:col-span-7 space-y-16">
+            <div className="space-y-6">
+               <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-purple-500/10 rounded-full border border-purple-500/30">
+                  <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-ping" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Tactical Core Synced</span>
+               </div>
+               <h1 className="text-[11rem] font-black leading-[0.85] tracking-tight uppercase" style={{ WebkitTextStroke: '1px rgba(255,255,255,0.05)' }}>
+                  Heavy.<br />
+                  <span className="italic" style={{ background: 'linear-gradient(135deg, #fff 30%, #a855f7 60%, #3b82f6 90%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    Capture.
+                  </span>
+               </h1>
+               <p className="text-zinc-500 text-3xl font-medium max-w-2xl leading-normal">
+                 Institutional alpha capture platform engineered for asymmetric multi-regime monitoring.
+               </p>
+            </div>
+
+            <div className="flex gap-10 pt-4">
+               <button className="group flex items-center h-24 bg-white text-black px-12 rounded-[2.5rem] font-black uppercase tracking-[.2em] text-sm hover:scale-105 transition-all shadow-[0_30px_60px_-15px_rgba(255,255,255,0.3)]">
+                 Regime Hub <ArrowRight className="ml-4 w-6 h-6 group-hover:translate-x-2 transition-transform" />
+               </button>
+               <button className="h-24 px-12 rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-3xl font-black uppercase tracking-[.2em] text-sm hover:bg-white/10 transition-all">
+                 System.Vault
+               </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-16 pt-20 border-t border-white/5">
+               <StatNode icon={<TrendingUp className="text-purple-400" />} label="Alpha Gain" value="+₹24,423" />
+               <StatNode icon={<Activity className="text-blue-400" />} label="Confidence" value="89.4%" />
+               <StatNode icon={<Cpu className="text-teal-400" />} label="Latency" value="9ms" />
+            </div>
+          </div>
+
+          {/* FLOATING GLASS MATRIX */}
+          <div className="col-span-12 lg:col-span-5 relative group">
+              <div className="absolute -inset-20 bg-purple-500/20 blur-[120px] rounded-full opacity-50 animate-pulse pointer-events-none" />
+              <div className="relative bg-white/[0.04] border border-white/10 backdrop-blur-[80px] rounded-[5rem] p-16 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-t-white/30 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between mb-16">
+                     <div>
+                        <h3 className="text-[10px] font-black uppercase tracking-[.4em] text-zinc-500 mb-2 italic">Active Feed</h3>
+                        <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Operational <br /> Matrix.</h2>
+                     </div>
+                     <RefreshCw onClick={fetchSignals} className="w-6 h-6 text-zinc-500 hover:text-white transition-all cursor-pointer" />
                   </div>
-                  <h1 className="text-[10rem] font-black leading-[0.8] tracking-tighter uppercase mb-2">
-                    Alpha. <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-br from-purple-400 via-blue-400 to-emerald-400">Captured.</span>
-                  </h1>
-                  <p className="text-white/40 text-2xl font-medium max-w-xl leading-relaxed">
-                    Institutional structural intelligence scaled through asymmetric multi-regime monitoring.
-                  </p>
-               </div>
 
-               <div className="flex gap-6">
-                  <button className="h-20 bg-white text-black px-12 rounded-[2rem] font-black flex items-center gap-4 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-white/10 uppercase tracking-widest text-xs">
-                    Regime Insight <ArrowRight className="w-6 h-6" />
-                  </button>
-                  <button className="h-20 bg-white/5 border border-white/10 backdrop-blur-xl px-12 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all">
-                    System Hub
-                  </button>
-               </div>
-
-               <div className="grid grid-cols-3 gap-12 pt-16 border-t border-white/5">
-                  <StatBlock icon={<TrendingUp className="text-purple-400" />} label="Alpha PnL" value="+₹24,423" />
-                  <StatBlock icon={<Activity className="text-blue-400" />} label="Confidence" value="89.4%" />
-                  <StatBlock icon={<Zap className="text-emerald-400" />} label="Execution" value="9ms" />
-               </div>
-            </div>
-
-            {/* FLOATING HYPER-GLASS CARD */}
-            <div className="col-span-12 lg:col-span-5 relative group">
-                <div className="absolute -inset-20 bg-gradient-to-br from-purple-500/30 via-blue-500/20 to-emerald-500/10 blur-[120px] rounded-full opacity-60 animate-pulse" />
-                <div className="relative bg-white/5 border border-white/10 backdrop-blur-[60px] rounded-[4rem] p-12 shadow-[0_0_100px_rgba(0,0,0,0.5)] border-t-white/30 border-l-white/20">
-                    <div className="flex items-center justify-between mb-12">
-                       <div>
-                          <h3 className="text-xs font-black uppercase tracking-[0.4em] text-white/30 mb-2">Tactical Loop</h3>
-                          <h2 className="text-3xl font-black tracking-tighter uppercase italic">Operational Matrix</h2>
+                  <div className="space-y-4">
+                     {signals.slice(0, 5).map((sig, i) => (
+                       <div key={i} className="flex items-center justify-between p-8 bg-black/20 border border-white/5 rounded-[3rem] hover:bg-white/10 transition-all cursor-pointer group/row">
+                          <div className="flex items-center gap-8">
+                             <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center transform group-hover/row:scale-110 transition-all shadow-xl">
+                                <Zap className="w-6 h-6 text-purple-400" />
+                             </div>
+                             <div>
+                                <div className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">{sig.Time || sig.Timestamp}</div>
+                                <div className="text-2xl font-black italic tracking-tighter uppercase text-white tracking-widest leading-none">{sig.Strike}</div>
+                             </div>
+                          </div>
+                          <div className="text-right">
+                             <div className="text-[10px] font-black uppercase text-zinc-600 mb-1">Vector</div>
+                             <div className="text-3xl font-black italic text-zinc-100">{sig.LTP || sig.Entry_LTP}</div>
+                          </div>
                        </div>
-                       <div onClick={fetchSignals} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 cursor-pointer hover:rotate-180 transition-all duration-700">
-                         <RefreshCw className="w-5 h-5 text-white/60" />
+                     ))}
+                     {signals.length === 0 && (
+                       <div className="py-24 text-center space-y-4 opacity-30 italic">
+                          <RefreshCw className="w-8 h-8 mx-auto animate-spin" />
+                          <p className="text-xs font-black uppercase tracking-[.3em]">Scanning Multiverse...</p>
                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                       {signals.slice(0, 5).map((sig, i) => (
-                         <div key={i} className="flex items-center justify-between p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all cursor-pointer group/row">
-                            <div className="flex items-center gap-6">
-                               <div className="w-14 h-14 bg-gradient-to-br from-white/10 to-transparent rounded-2xl flex items-center justify-center border border-white/10 group-hover/row:scale-110 transition-transform">
-                                  <Box className="w-6 h-6 text-purple-400" />
-                               </div>
-                               <div>
-                                  <div className="text-[10px] font-black uppercase text-white/40 tracking-widest">{sig.Time || sig.Timestamp}</div>
-                                  <div className="text-xl font-black italic tracking-tighter uppercase group-hover/row:text-purple-400 transition-colors">{sig.Strike}</div>
-                               </div>
-                            </div>
-                            <div className="text-right">
-                               <div className="text-xs font-black uppercase text-white/40 mb-1">Capture</div>
-                               <div className="text-2xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">{sig.LTP || sig.Entry_LTP}</div>
-                            </div>
-                         </div>
-                       ))}
-                       {signals.length === 0 && (
-                         <div className="py-24 text-center space-y-4 opacity-30">
-                            <Gem className="w-12 h-12 mx-auto animate-bounce" />
-                            <p className="text-xs font-black uppercase tracking-[.4em]">Searching Market Regimes...</p>
-                         </div>
-                       )}
-                    </div>
-                </div>
-            </div>
+                     )}
+                  </div>
+              </div>
+          </div>
         </div>
       </div>
 
-      {/* AURA CONFIG MODAL */}
+      {/* MANUAL OVERRIDE SECURITY MODAL */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-3xl flex items-center justify-center z-[200] p-12">
-          <div className="bg-[#05050A] border border-white/10 p-20 w-full max-w-4xl rounded-[5rem] shadow-2xl relative overflow-hidden flex flex-col items-center">
-             <div className="absolute top-[-20%] right-[-20%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full" />
-             <div className="absolute bottom-[-20%] left-[-20%] w-[500px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full" />
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-[100px] flex items-center justify-center z-[200] p-12 overflow-y-auto">
+          <div className="bg-[#050510] border border-white/20 p-24 w-full max-w-5xl rounded-[6rem] shadow-[0_0_120px_rgba(139,92,246,0.3)] relative text-center">
+             <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full" />
+             <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 blur-[150px] rounded-full" />
              
-             <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-500 rounded-[2.5rem] flex items-center justify-center shadow-xl shadow-purple-500/40 mb-10">
-                <Lock className="w-10 h-10 text-white" />
+             <div className="w-32 h-32 bg-white rounded-[3rem] flex items-center justify-center shadow-2xl shadow-purple-500/20 mb-12 mx-auto">
+                <Lock className="w-12 h-12 text-black" />
              </div>
              
-             <h2 className="text-6xl font-black tracking-tighter uppercase mb-4 italic">Security HQ</h2>
-             <p className="text-white/30 font-bold uppercase tracking-[0.5em] text-xs mb-16 underline decoration-purple-500 underline-offset-8">Multi-Vector Authorization</p>
+             <h2 className="text-7xl font-black tracking-tighter uppercase italic mb-4">Security Headquarters</h2>
+             <p className="text-zinc-500 font-black uppercase tracking-[.6em] text-xs mb-20">Credential Matrix Synchronization</p>
 
-             <div className="grid grid-cols-2 gap-x-12 gap-y-10 w-full text-left mb-16">
-               <AuraInput label="GitHub Master" value={gitToken} setter={setGitToken} colSpan={2} />
-               <AuraInput label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
-               <AuraInput label="Groww Token" value={growwToken} setter={setGrowwToken} />
-               <AuraInput label="Gemini Master" value={geminiKey} setter={setGeminiKey} colSpan={2} />
+             <div className="grid grid-cols-2 gap-x-12 gap-y-12 w-full text-left mb-20 px-8">
+               <ApexInput label="GitHub Master" value={gitToken} setter={setGitToken} colSpan={2} />
+               <ApexInput label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
+               <ApexInput label="Groww Token" value={growwToken} setter={setGrowwToken} />
+               <ApexInput label="Gemini AI Manifest" value={geminiKey} setter={setGeminiKey} colSpan={2} />
              </div>
 
-             <div className="flex gap-10">
+             <div className="flex gap-10 justify-center">
                 <button 
                   onClick={saveSettings}
-                  className="h-24 bg-white text-black px-20 rounded-[2.5rem] font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/10"
+                  className="h-28 bg-white text-black px-24 rounded-[3rem] font-black uppercase text-sm tracking-widest hover:scale-105 transition-all shadow-2xl"
                 >
-                  Confirm Synch
+                  Authorize Sync
                 </button>
-                <button 
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="px-14 py-6 text-xs font-black uppercase tracking-widest text-white/30 hover:text-white transition-all"
-                >
-                  Dismiss
-                </button>
+                <button onClick={() => setIsSettingsOpen(false)} className="px-12 py-6 text-xs font-black uppercase text-zinc-500 hover:text-white transition-all">Dismiss</button>
              </div>
           </div>
         </div>
@@ -235,15 +245,15 @@ export default function Dashboard() {
   );
 }
 
-function StatBlock({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+function StatNode({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
   return (
-    <div className="space-y-4 group cursor-default">
-       <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-[1.5rem] flex items-center justify-center group-hover:bg-white/10 transition-all">
-          {icon}
+    <div className="space-y-6 group cursor-default">
+       <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-[2.5rem] backdrop-blur-2xl flex items-center justify-center shadow-lg group-hover:bg-white/10 transition-all">
+          {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
        </div>
-       <div>
-         <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">{label}</h4>
-         <div className="text-4xl font-black italic tracking-tighter text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/40 transition-all">
+       <div className="space-y-1">
+         <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-[.4em] leading-none mb-2">{label}</h4>
+         <div className="text-5xl font-black italic tracking-tighter text-white group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-purple-500 transition-all">
           {value}
          </div>
        </div>
@@ -251,15 +261,15 @@ function StatBlock({ icon, label, value }: { icon: React.ReactNode, label: strin
   )
 }
 
-function AuraInput({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
+function ApexInput({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
   return (
     <div className={`${colSpan === 2 ? 'col-span-2' : 'col-span-1'} space-y-4`}>
-       <label className="text-[10px] font-black text-white/20 uppercase tracking-[0.5em] pl-6 italic">{label}</label>
+       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-[.6em] pl-10 italic">{label}</label>
        <input 
          type="password"
          value={value}
          onChange={(e) => setter(e.target.value)}
-         className="w-full bg-white/5 border border-white/5 p-8 rounded-[2.5rem] text-purple-400 font-mono text-sm focus:outline-none focus:border-purple-500/40 focus:bg-white/10 transition-all"
+         className="w-full bg-white/5 border border-white/10 p-10 rounded-[3.5rem] text-purple-400 font-mono text-lg focus:outline-none focus:border-purple-500/60 focus:bg-white/10 transition-all"
          placeholder="••••••••••••"
        />
     </div>
