@@ -14,7 +14,9 @@ import {
   Database,
   Cpu,
   RefreshCw,
-  Bell
+  Bell,
+  TrendingUp,
+  Radar
 } from 'lucide-react';
 
 interface Signal {
@@ -61,199 +63,245 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#08090A] text-[#E4E4E7] font-sans selection:bg-blue-500/30">
+    <main className="min-h-screen bg-[#020408] text-white font-sans selection:bg-blue-500/30 overflow-x-hidden">
       
-      {/* Top Navigation Bar: Minimalist Palantir Style */}
-      <nav className="h-14 border-b border-white/[0.08] bg-[#0C0D0E]/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
+      {/* Dynamic Background Mesh */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[150px] rounded-full" />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-blue-400/5 blur-[100px] rounded-full" />
+      </div>
+
+      {/* Glass Header */}
+      <nav className="h-20 border-b border-white/[0.05] bg-white/[0.02] backdrop-blur-2xl flex items-center justify-between px-10 sticky top-0 z-50">
+        <div className="flex items-center gap-6">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative flex items-center gap-3 px-4 py-2 bg-black rounded-lg border border-white/10">
+              <Shield className="w-5 h-5 text-blue-400" />
+              <span className="font-extrabold tracking-tight text-lg uppercase bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">MaxG Sentinel</span>
             </div>
-            <span className="font-bold tracking-tight text-sm uppercase">MaxG</span>
           </div>
-          <div className="h-4 w-[1px] bg-white/10" />
-          <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">Sentinel_AIP v3.1</span>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-none">AIP Core 3.1</span>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-[10px] font-bold text-green-500 uppercase tracking-tighter">Live Connection</span>
+        <div className="flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-4 text-[11px] font-medium text-gray-500 uppercase tracking-widest">
+            <span className="hover:text-blue-400 cursor-pointer transition-colors">Matrix</span>
+            <span className="hover:text-blue-400 cursor-pointer transition-colors">Tactical</span>
+            <span className="hover:text-blue-400 cursor-pointer transition-colors">Archive</span>
           </div>
+          <div className="h-6 w-[1px] bg-white/10 mx-2" />
           <button 
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-zinc-400"
+            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-white active:scale-95"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-5 h-5" />
           </button>
         </div>
       </nav>
 
-      <div className="p-6 grid grid-cols-12 gap-6">
+      <div className="max-w-[1600px] mx-auto p-10 space-y-10 relative">
         
-        {/* Metric Overview: Sophisticated Foundary Cards */}
-        <div className="col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Metric Grid: High Vibrancy Glass */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <MetricCard 
-            icon={<Zap className="w-4 h-4 text-blue-400" />} 
-            label="Total Alpha Capture" 
+            icon={<Zap className="w-6 h-6 text-yellow-400" />} 
+            label="Equity Alpha Capture" 
             value="+24,423" 
-            trend="+12% vs last session"
+            subValue="+12.4% APR"
+            color="from-yellow-400/20 to-orange-400/20"
           />
           <MetricCard 
-            icon={<Activity className="w-4 h-4 text-purple-400" />} 
-            label="Regime Confidence" 
+            icon={<Radar className="w-6 h-6 text-blue-400" />} 
+            label="Tactical Confidence" 
             value="89.4%" 
-            trend="Strong Trend Lock"
+            subValue="High Regime Lock"
+            color="from-blue-400/20 to-indigo-400/20"
           />
           <MetricCard 
-            icon={<Database className="w-4 h-4 text-emerald-400" />} 
-            label="Signal Persistence" 
-            value="Critical 6/6" 
-            trend="Monitored 1m Interval"
+            icon={<Activity className="w-6 h-6 text-emerald-400" />} 
+            label="Signal Velocity" 
+            value="Critical" 
+            subValue="1m Precision Sync"
+            color="from-emerald-400/20 to-cyan-400/20"
           />
           <MetricCard 
-            icon={<Bell className="w-4 h-4 text-amber-400" />} 
-            label="Active Alerts" 
-            value="Enabled" 
-            trend="ntfy: MaxG_Alerts_v1"
+            icon={<TrendingUp className="w-6 h-6 text-purple-400" />} 
+            label="Win Probability" 
+            value="60.2%" 
+            subValue="Verified Monthly"
+            color="from-purple-400/20 to-pink-400/20"
           />
         </div>
 
-        {/* Left column: Data Logs & Intel */}
-        <div className="col-span-12 lg:col-span-3 space-y-6">
-          <div className="bg-[#0C0D0E] border border-white/[0.08] rounded-xl overflow-hidden p-4">
-            <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
-              <Terminal className="w-4 h-4 text-blue-500" />
-              <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">AIP Intel Stream</h3>
-            </div>
-            <div className="space-y-3">
-              {signals.slice(0, 5).map((sig, i) => (
-                <div key={i} className="group p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-blue-500/30 transition-all">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs font-bold text-white tracking-tight">{sig.Strike}</span>
-                    <ArrowUpRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-400 transition-colors" />
+        <div className="grid grid-cols-12 gap-10">
+          
+          {/* Intelligence Sidebar: Glass Panel */}
+          <div className="col-span-12 lg:col-span-3 space-y-10">
+            <section className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+              <div className="flex items-center gap-3 mb-8">
+                <Terminal className="w-5 h-5 text-blue-500" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-400">Intel Feed</h3>
+              </div>
+              <div className="space-y-6">
+                {signals.slice(0, 4).map((sig, i) => (
+                  <div key={i} className="group p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-blue-500/20 transition-all cursor-pointer">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm font-bold text-white tracking-tight">{sig.Strike}</span>
+                      <div className="p-1 px-2 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-lg uppercase tracking-tighter">Verified</div>
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">9-EMA Hook detected. Alpha capture in progress. Target T1 alignment 100%.</p>
                   </div>
-                  <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">Verified structural 9-EMA pullback confirmation. Market regime aligned for expansion.</p>
-                </div>
-              ))}
+                ))}
+              </div>
+            </section>
+
+            {/* System Status Glass */}
+            <div className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <Activity className="w-5 h-5 text-emerald-500" />
+                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-400">System State</h3>
+              </div>
+              <div className="space-y-4 text-xs font-medium">
+                <StatusItem label="Groww Session" state="Secure" />
+                <StatusItem label="AIP Audit" state="Active" />
+                <StatusItem label="ntfy Link" state="Deploying" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Center/Main: Tactical Workspace */}
-        <div className="col-span-12 lg:col-span-9 space-y-6">
-          <div className="bg-[#0C0D0E] border border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Crosshair className="w-5 h-5 text-blue-500" />
-                <h2 className="font-bold text-lg tracking-tight">Active Operation Matrix</h2>
+          {/* Main Matrix: Large Aero Glass Container */}
+          <div className="col-span-12 lg:col-span-9">
+            <section className="bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[3rem] shadow-2xl overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.05] to-transparent pointer-events-none" />
+              
+              <div className="px-10 py-8 border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20 shadow-blue-500/20 shadow-lg">
+                    <Crosshair className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-black text-2xl tracking-tighter uppercase italic">Operational Matrix</h2>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Regime-Sync Protocol Active</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={fetchSignals}
+                  className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 group"
+                >
+                  <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-700" /> Sync Intelligence
+                </button>
               </div>
-              <button 
-                onClick={fetchSignals}
-                className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
-              >
-                <RefreshCw className="w-3 h-3" /> Sync Intelligence
-              </button>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.01]">
-                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Coordinate (Time)</th>
-                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Asset Vector</th>
-                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">LTP Capture</th>
-                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Threat (SL)</th>
-                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 text-right">Targets (T1/T2)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {signals.map((sig, i) => (
-                    <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-5">
-                        <span className="text-xs font-mono text-zinc-400">{sig.Time || sig.Timestamp}</span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white">{sig.Strike}</span>
-                          <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 uppercase tracking-tighter">Verified</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm font-mono text-zinc-300">
-                        {sig.LTP || sig.Entry_LTP}
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-xs font-bold text-red-500/80">{sig.SL}</span>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <div className="text-right">
-                            <div className="text-xs font-bold text-emerald-400">{sig.T1}</div>
-                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">Initial</div>
-                          </div>
-                          <div className="h-6 w-[1px] bg-white/10" />
-                          <div className="text-right">
-                            <div className="text-xs font-bold text-blue-400">{sig.T2}</div>
-                            <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter">Major</div>
-                          </div>
-                        </div>
-                      </td>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-white/[0.01] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                      <th className="px-10 py-8">Timestamp</th>
+                      <th className="px-10 py-8">Strike Vector</th>
+                      <th className="px-10 py-8 text-center">Capture Unit</th>
+                      <th className="px-10 py-8 text-center">Threat Buffer</th>
+                      <th className="px-10 py-8 text-right">Alpha Targets</th>
                     </tr>
-                  ))}
-                  {signals.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-24 text-center">
-                        <div className="flex flex-col items-center gap-3 opacity-20">
-                          <Cpu className="w-10 h-10" />
-                          <p className="text-sm italic">Scanning market structural regimes. Zero assets confirmed.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.05]">
+                    {signals.map((sig, i) => (
+                      <tr key={i} className="hover:bg-white/[0.03] transition-all group">
+                        <td className="px-10 py-8">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white mb-1">Trade Vector {i + 1}</span>
+                            <span className="text-[11px] font-mono text-gray-500">{sig.Time || sig.Timestamp}</span>
+                          </div>
+                        </td>
+                        <td className="px-10 py-8">
+                          <div className="flex items-center gap-4">
+                            <div className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-xl text-sm font-black tracking-tighter">
+                              {sig.Strike}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-10 py-8 text-center">
+                          <div className="text-lg font-black text-white bg-clip-text">
+                            {sig.LTP || sig.Entry_LTP}
+                          </div>
+                        </td>
+                        <td className="px-10 py-8 text-center text-red-500/80 font-bold text-sm tracking-tighter">
+                          {sig.SL}
+                        </td>
+                        <td className="px-10 py-8">
+                          <div className="flex items-center justify-end gap-6">
+                            <div className="text-right">
+                              <div className="text-lg font-black text-emerald-400 drop-shadow-lg">{sig.T1}</div>
+                              <div className="text-[10px] font-black text-zinc-600 uppercase italic tracking-tighter">Alpha I</div>
+                            </div>
+                            <div className="h-8 w-[1px] bg-white/10" />
+                            <div className="text-right">
+                              <div className="text-lg font-black text-blue-400 drop-shadow-lg">{sig.T2}</div>
+                              <div className="text-[10px] font-black text-zinc-600 uppercase italic tracking-tighter">Alpha II</div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {signals.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-10 py-40 text-center">
+                          <div className="flex flex-col items-center gap-6 opacity-40">
+                            <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center animate-pulse">
+                              <Cpu className="w-10 h-10 text-gray-500" />
+                            </div>
+                            <p className="text-lg font-medium italic text-gray-500 tracking-tight">Regime Scanning: No verified assets in flight...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         </div>
       </div>
 
-      {/* Settings Modal: AIP Styled */}
+      {/* Settings Modal: Deep Morphic Glass */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-[#08090A]/95 backdrop-blur-md flex items-center justify-center z-[100] p-6">
-          <div className="bg-[#0C0D0E] border border-white/10 p-10 w-full max-w-lg rounded-2xl shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600" />
-            <div className="flex items-center gap-3 mb-8">
-              <Lock className="w-5 h-5 text-blue-500" />
-              <h2 className="text-2xl font-bold tracking-tight">Access Control HQ</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-3xl flex items-center justify-center z-[100] p-10">
+          <div className="bg-[#0A0C10] border border-white/10 p-12 w-full max-w-xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-indigo-600" />
+            <div className="flex items-center gap-4 mb-10">
+              <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
+                <Lock className="w-6 h-6 text-blue-500" />
+              </div>
+              <h2 className="text-3xl font-black tracking-tight uppercase italic">Security Hub</h2>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-10">
               <div>
-                <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2 tracking-widest">GitHub Authentication Token</label>
-                <div className="relative">
-                  <input 
-                    type="password"
-                    value={gitToken}
-                    onChange={(e) => setGitToken(e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/10 p-4 rounded-xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600 transition-all"
-                    placeholder="ghp_security_manifest_token"
-                  />
-                </div>
-                <p className="text-[10px] text-zinc-600 mt-2 italic">Requires 'repo' scope permissions for structural data sync.</p>
+                <label className="block text-[11px] font-black text-gray-500 uppercase mb-4 tracking-[0.3em]">GitHub Intelligence Link</label>
+                <input 
+                  type="password"
+                  value={gitToken}
+                  onChange={(e) => setGitToken(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] text-blue-400 font-mono text-lg focus:outline-none focus:border-blue-600/50 focus:bg-white/[0.05] transition-all placeholder:text-gray-700"
+                  placeholder="GHP_SECURITY_TOKEN"
+                />
               </div>
             </div>
-            <div className="flex gap-4 mt-12">
+            <div className="flex gap-6 mt-16">
               <button 
                 onClick={saveSettings}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all uppercase text-xs tracking-widest"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-6 rounded-[2rem] transition-all uppercase text-sm tracking-widest shadow-xl shadow-blue-900/20 hover:scale-105 active:scale-95"
               >
-                Synchronize Platform
+                Launch Synchronizer
               </button>
               <button 
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-8 py-4 border border-white/10 text-zinc-400 hover:text-white rounded-xl uppercase text-[10px] font-bold tracking-widest transition-all"
+                className="px-10 py-6 border border-white/10 text-gray-500 hover:text-white rounded-[2rem] uppercase text-[11px] font-bold tracking-widest transition-all hover:bg-white/5 active:scale-95"
               >
-                Dismiss
+                Abort
               </button>
             </div>
           </div>
@@ -263,18 +311,28 @@ export default function Dashboard() {
   );
 }
 
-function MetricCard({ icon, label, value, trend }: { icon: React.ReactNode, label: string, value: string, trend: string }) {
+function MetricCard({ icon, label, value, subValue, color }: { icon: React.ReactNode, label: string, value: string, subValue: string, color: string }) {
   return (
-    <div className="bg-[#0C0D0E] border border-white/[0.08] p-5 rounded-xl hover:border-white/20 transition-all cursor-default group">
-      <div className="flex items-center justify-between mb-3">
-        <div className="p-2 bg-white/[0.02] rounded-lg border border-white/5 group-hover:bg-blue-500/10 group-hover:border-blue-500/20 transition-all">
+    <div className="bg-white/[0.03] border border-white/10 p-8 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden group hover:border-white/20 transition-all cursor-default shadow-2xl">
+      <div className={`absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br ${color} rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity`} />
+      <div className="flex items-center justify-between mb-6">
+        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform shadow-lg backdrop-blur-xl">
           {icon}
         </div>
-        <ChevronRight className="w-3 h-3 text-zinc-700" />
+        <ChevronRight className="w-4 h-4 text-gray-700" />
       </div>
-      <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{label}</h3>
-      <div className="text-2xl font-black text-white tracking-tight mb-2">{value}</div>
-      <div className="text-[10px] font-bold text-zinc-600 tracking-tight">{trend}</div>
+      <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">{label}</h3>
+      <div className="text-4xl font-black text-white tracking-tighter mb-1">{value}</div>
+      <div className="text-[11px] font-bold text-gray-600 tracking-tight uppercase italic">{subValue}</div>
+    </div>
+  )
+}
+
+function StatusItem({ label, state }: { label: string, state: string }) {
+  return (
+    <div className="flex justify-between items-center py-3 border-b border-white/[0.02]">
+      <span className="text-gray-500 uppercase tracking-widest text-[9px] font-bold">{label}</span>
+      <span className="text-emerald-400 font-bold tracking-tight bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">{state}</span>
     </div>
   )
 }
