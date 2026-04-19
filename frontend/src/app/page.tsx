@@ -53,11 +53,11 @@ const ParticleSystem = () => {
         this.vy = (Math.random() - 0.5) * 0.5;
         this.size = Math.random() * 2;
       }
-      update() {
+      update(w: number, h: number) {
         this.x += this.vx;
         this.y += this.vy;
-        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        if (this.x < 0 || this.x > w) this.vx *= -1;
+        if (this.y < 0 || this.y > h) this.vy *= -1;
       }
       draw() {
         if (!ctx) return;
@@ -76,7 +76,7 @@ const ParticleSystem = () => {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach(p => {
-        p.update();
+        p.update(canvas.width, canvas.height);
         p.draw();
       });
       requestAnimationFrame(animate);
