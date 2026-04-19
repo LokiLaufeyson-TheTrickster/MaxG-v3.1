@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Settings, 
-  Zap, 
-  Activity, 
-  Lock, 
   ArrowUpRight, 
-  Database,
+  ChevronRight,
   RefreshCw,
-  Bell,
-  Cpu,
-  MousePointer2
+  Lock,
+  ArrowRight,
+  TrendingUp,
+  Zap,
+  Activity,
+  Radar
 } from 'lucide-react';
 
 interface Signal {
@@ -31,7 +31,6 @@ export default function Dashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   // Credentials State
   const [gitToken, setGitToken] = useState("");
@@ -55,18 +54,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSignals();
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    
-    // Load local settings
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
-
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const saveSettings = () => {
@@ -78,157 +69,156 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#030303] text-white font-sans selection:bg-blue-500/30 overflow-x-hidden relative">
+    <main className="min-h-screen bg-[#050510] text-white font-sans selection:bg-purple-500/30 overflow-x-hidden relative">
       
-      {/* Interactive Background Particles & Orbs */}
-      <div className="fixed inset-0 z-0">
-        <div 
-          className="absolute w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[160px] transition-transform duration-1000 ease-out pointer-events-none"
-          style={{ transform: `translate(${mousePos.x / 10}px, ${mousePos.y / 10}px)` }}
-        />
-        <div 
-          className="absolute bottom-[-100px] right-[-100px] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none"
-        />
-        <div className="absolute inset-0 opacity-20 pointer-events-none" 
-             style={{ backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)`, backgroundSize: '40px 40px' }} />
+      {/* BACKGROUND NEBULA/BLOB EFFECTS */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 blur-[150px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[80%] bg-blue-600/10 blur-[180px] rounded-full" />
+        <div className="absolute top-[30%] left-[20%] w-[400px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full" />
       </div>
 
-      <nav className="h-20 border-b border-white/5 bg-white/[0.01] backdrop-blur-xl flex items-center justify-between px-12 sticky top-0 z-[100]">
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-100 transition duration-1000"></div>
-            <div className="relative w-10 h-10 bg-black rounded-full flex items-center justify-center border border-white/20">
-              <Shield className="w-5 h-5 text-blue-400" />
-            </div>
+      {/* MINIMALIST NAV BAR */}
+      <nav className="h-24 flex items-center justify-between px-16 relative z-[100]">
+        <div className="flex items-center gap-12">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-tighter uppercase italic">MAXG.<span className="text-zinc-500">SENTINEL</span></span>
           </div>
-          <span className="text-xl font-black tracking-tighter uppercase italic">MAX-G <span className="text-blue-500">ETH_V1</span></span>
+          <div className="hidden lg:flex items-center gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+            <span className="text-white border-b-2 border-purple-500 pb-1 cursor-pointer">Intelligence</span>
+            <span className="hover:text-white transition-colors cursor-pointer">Vault</span>
+            <span className="hover:text-white transition-colors cursor-pointer">Regime</span>
+            <span className="hover:text-white transition-colors cursor-pointer">AIP_Core</span>
+          </div>
         </div>
         
         <div className="flex items-center gap-8">
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="group flex items-center gap-3 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all active:scale-95"
-          >
-            <Settings className="w-4 h-4 text-zinc-400 group-hover:rotate-90 transition-transform duration-500" />
-            <span className="text-[10px] uppercase font-bold tracking-[.2em]">HQ_CONFIG</span>
-          </button>
+           <button 
+             onClick={() => setIsSettingsOpen(true)}
+             className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-all"
+           >
+             <Settings className="w-5 h-5 text-zinc-400" />
+           </button>
         </div>
       </nav>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto p-12 space-y-12">
-        
-        {/* Stat Stream: Fluid Floating Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <StatPanel icon={<Zap />} label="Portfolio Alpha" value="+₹24,423" sub="V1 ENGINE CONFIRMED" />
-          <StatPanel icon={<Activity />} label="Trend Persistence" value="Critical" sub="6/6 PERSISTENCE" />
-          <StatPanel icon={<Cpu />} label="AIP Audit" value="Active" sub="GEMINI FLASH 2.0" />
-          <StatPanel icon={<RefreshCw />} label="Live Sync" value="9ms" sub="REAL-TIME POLLING" />
-        </div>
-
-        <div className="grid grid-cols-12 gap-12">
+      <div className="relative z-10 max-w-[1500px] mx-auto px-16 py-12">
+        <div className="grid grid-cols-12 gap-16 items-start">
           
-          {/* Principal Data Matrix: Deep Glassmorphism */}
-          <div className="col-span-12 lg:col-span-9">
-            <div className="bg-white/[0.02] border border-white/10 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)]">
-              <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-500/20">
-                    <MousePointer2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <h2 className="text-2xl font-black uppercase italic tracking-tighter">Tactical Stream</h2>
+          {/* LEFT: HERO TEXT & ALPHA METRIC */}
+          <div className="col-span-12 lg:col-span-6 space-y-12">
+            <div className="space-y-4">
+               <div className="flex items-center gap-3">
+                 <div className="w-3 h-3 bg-purple-500 rounded-full animate-ping" />
+                 <span className="text-[10px] uppercase font-black tracking-[0.4em] text-purple-500">Operation Sentinel Active</span>
+               </div>
+               <h1 className="text-8xl font-black tracking-tighter italic leading-[0.9] uppercase bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-zinc-700">
+                 Structural <br /> 
+                 Wizardry <br />
+                 & Capture.
+               </h1>
+               <p className="text-zinc-500 text-lg max-w-md font-medium leading-relaxed">
+                 Giving institutional precision an asymmetric edge through continuous Gaussian multi-regime monitoring.
+               </p>
+            </div>
+
+            <div className="flex gap-4">
+               <button className="flex items-center">
+                 <span className="bg-[#0A0A1A] border border-white/10 px-8 py-4 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all">Regime Analysis</span>
+                 <span className="bg-white text-black px-6 py-4 border border-white/10">
+                   <ArrowRight className="w-5 h-5" />
+                 </span>
+               </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 pt-12 border-t border-white/5">
+                <MetricBlock icon={<TrendingUp className="text-purple-400" />} label="Alpha Gain" value="+₹24,423" />
+                <MetricBlock icon={<Activity className="text-blue-400" />} label="Persistence" value="6/6 CRITICAL" />
+            </div>
+          </div>
+
+          {/* RIGHT: FLOATING GLASS CARD (TACTICAL MATRIX) */}
+          <div className="col-span-12 lg:col-span-6 relative group">
+            <div className="absolute -inset-10 bg-gradient-to-br from-purple-500/20 to-blue-500/10 blur-[80px] opacity-30 group-hover:opacity-60 transition duration-1000" />
+            
+            <div className="relative bg-white/[0.03] border border-white/10 backdrop-blur-[40px] rounded-[3rem] shadow-2xl overflow-hidden min-h-[600px] flex flex-col">
+              <div className="px-10 py-10 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500 mb-1">Intelligence Flow</h3>
+                  <h2 className="text-2xl font-black italic tracking-tighter uppercase">Tactical Matrix</h2>
                 </div>
-                <button onClick={fetchSignals} className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors">
-                   <RefreshCw className="w-4 h-4 text-zinc-500" />
-                </button>
+                <RefreshCw onClick={fetchSignals} className="w-5 h-5 text-zinc-600 cursor-pointer hover:rotate-180 transition-transform duration-700" />
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="flex-1 overflow-y-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-[10px] font-black uppercase tracking-[.3em] text-zinc-500">
-                      <th className="px-10 py-8">Timestamp</th>
-                      <th className="px-10 py-8">Asset Matrix</th>
-                      <th className="px-10 py-8">LTP Vector</th>
-                      <th className="px-10 py-8 text-right">Targets / SL</th>
+                    <tr className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
+                      <th className="px-10 py-8">Coordinate</th>
+                      <th className="px-10 py-8">Asset</th>
+                      <th className="px-10 py-8 text-right">LTP Capture</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
                     {signals.map((sig, i) => (
-                      <tr key={i} className="hover:bg-white/[0.03] transition-all group relative">
-                        <td className="px-10 py-8 text-xs font-mono text-zinc-500">{sig.Time || sig.Timestamp}</td>
-                        <td className="px-10 py-8">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-black text-blue-400 italic tracking-tighter">{sig.Strike}</span>
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
-                          </div>
-                        </td>
-                        <td className="px-10 py-8 font-black text-lg">{sig.LTP || sig.Entry_LTP}</td>
-                        <td className="px-10 py-8 text-right">
-                          <div className="space-y-1">
-                            <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{sig.T1} <span className="text-zinc-700 mx-1">/</span> {sig.T2}</div>
-                            <div className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">Threat: {sig.SL}</div>
+                      <tr key={i} className="hover:bg-white/[0.04] transition-all group">
+                         <td className="px-10 py-10 text-xs font-mono text-zinc-500 italic">{sig.Time || sig.Timestamp}</td>
+                         <td className="px-10 py-10 font-black italic uppercase text-lg group-hover:text-purple-400 transition-colors">{sig.Strike}</td>
+                         <td className="px-10 py-10 text-right font-black text-xl text-zinc-100">{sig.LTP || sig.Entry_LTP}</td>
+                      </tr>
+                    ))}
+                    {signals.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-10 py-40 text-center">
+                          <div className="flex flex-col items-center gap-4 opacity-20 italic">
+                             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center border border-white/10 animate-pulse">
+                                <Zap />
+                             </div>
+                             <p className="text-sm">Scanning market regimes for wizardry entry points...</p>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          {/* Intel Sidebar: Floating Glass Cards */}
-          <div className="col-span-12 lg:col-span-3 space-y-8">
-            <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 backdrop-blur-2xl p-8 rounded-[2rem] shadow-xl relative overflow-hidden group">
-               <div className="absolute top-[-20px] right-[-20px] w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-               <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6 flex items-center gap-2">
-                 <Bell className="w-4 h-4" /> Global Intel
-               </h3>
-               <div className="space-y-6">
-                 {signals.slice(0, 3).map((sig, i) => (
-                   <div key={i} className="space-y-2 border-l-2 border-blue-500/30 pl-4 py-1">
-                      <div className="text-[10px] font-black text-blue-400 uppercase">{sig.Strike}</div>
-                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">Structural confirmation lock. Delta expansion imminent.</p>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          </div>
-
         </div>
       </div>
 
-      {/* HQ Command Modal: Fluid Glass */}
+      {/* WIZARDRY CONFIG MODAL */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-3xl flex items-center justify-center z-[200] p-12 overflow-y-auto">
-          <div className="bg-white/[0.02] border border-white/20 p-12 w-full max-w-2xl rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] relative">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-            <div className="flex items-center gap-4 mb-12">
-              <Lock className="w-8 h-8 text-blue-500" />
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Security Protocol</h2>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-8 mb-12">
-               <InputBlock label="GitHub Sync" value={gitToken} setter={setGitToken} colSpan={2} />
-               <InputBlock label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
-               <InputBlock label="Groww Token" value={growwToken} setter={setGrowwToken} />
-               <InputBlock label="Gemini Key" value={geminiKey} setter={setGeminiKey} colSpan={2} />
-            </div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl flex items-center justify-center z-[200] p-12">
+          <div className="bg-[#050510] border border-white/10 p-16 w-full max-w-3xl rounded-[4rem] shadow-[0_0_100px_rgba(118,60,255,0.2)] relative overflow-hidden text-center">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 blur-[100px] rounded-full" />
+             <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/10 blur-[100px] rounded-full" />
+             
+             <h2 className="text-5xl font-black italic tracking-tighter uppercase mb-4">Access Control</h2>
+             <p className="text-zinc-500 font-medium mb-12 uppercase tracking-widest text-[10px]">Credential Authorization Required</p>
 
-            <div className="flex gap-6">
-              <button 
-                onClick={saveSettings}
-                className="flex-1 bg-white text-black font-black py-6 rounded-3xl hover:bg-blue-500 hover:text-white transition-all uppercase tracking-[.2em] text-xs shadow-xl shadow-white/5 active:scale-95"
-              >
-                Launch Protocol
-              </button>
-              <button 
-                onClick={() => setIsSettingsOpen(false)}
-                className="px-10 py-6 border border-white/10 rounded-3xl text-zinc-500 font-black hover:text-white transition-colors"
-              >
-                Abort
-              </button>
-            </div>
+             <div className="grid grid-cols-2 gap-10 text-left mb-16">
+               <WizardryInput label="GitHub Master Token" value={gitToken} setter={setGitToken} colSpan={2} />
+               <WizardryInput label="Groww Secret" value={growwSecret} setter={setGrowwSecret} />
+               <WizardryInput label="Groww Token" value={growwToken} setter={setGrowwToken} />
+               <WizardryInput label="Gemini AIP Master" value={geminiKey} setter={setGeminiKey} colSpan={2} />
+             </div>
+
+             <div className="flex gap-8 justify-center">
+               <button 
+                 onClick={saveSettings}
+                 className="bg-white text-black px-12 py-6 text-xs font-black uppercase tracking-[0.3em] rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5"
+               >
+                 Launch Platform
+               </button>
+               <button 
+                 onClick={() => setIsSettingsOpen(false)}
+                 className="px-12 py-6 text-xs font-black uppercase tracking-[0.3em] text-zinc-500 hover:text-white transition-colors"
+               >
+                 Dismiss
+               </button>
+             </div>
           </div>
         </div>
       )}
@@ -236,30 +226,31 @@ export default function Dashboard() {
   );
 }
 
-function StatPanel({ icon, label, value, sub }: { icon: React.ReactNode, label: string, value: string, sub: string }) {
+function MetricBlock({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
   return (
-    <div className="group relative bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-white/20 backdrop-blur-3xl p-8 rounded-[2rem] transition-all cursor-default overflow-hidden">
-      <div className="absolute bottom-[-10px] right-[-10px] opacity-10 group-hover:opacity-40 transition-opacity transform group-hover:scale-150 duration-700">
-         {React.cloneElement(icon as React.ReactElement<any>, { className: "w-16 h-16" })}
+    <div className="space-y-4">
+      <div className="w-12 h-12 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center">
+        {icon}
       </div>
-      <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[.3em] mb-3">{label}</h3>
-      <div className="text-3xl font-black italic tracking-tighter mb-2">{value}</div>
-      <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{sub}</div>
+      <div>
+        <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-1">{label}</h4>
+        <div className="text-3xl font-black italic tracking-tighter">{value}</div>
+      </div>
     </div>
   )
 }
 
-function InputBlock({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
+function WizardryInput({ label, value, setter, colSpan = 1 }: { label: string, value: string, setter: (v: string) => void, colSpan?: number }) {
   return (
-    <div className={`${colSpan === 2 ? 'col-span-2' : 'col-span-1'} space-y-3`}>
-      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-2">{label}</label>
-      <input 
-        type="password"
-        value={value}
-        onChange={(e) => setter(e.target.value)}
-        className="w-full bg-white/[0.03] border border-white/10 p-5 rounded-2xl text-blue-400 font-mono text-sm focus:outline-none focus:border-blue-600/50 transition-all placeholder:text-zinc-800"
-        placeholder="••••••••••••"
-      />
+    <div className={`${colSpan === 2 ? 'col-span-2' : 'col-span-1'} space-y-4`}>
+       <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest pl-4">{label}</label>
+       <input 
+         type="password"
+         value={value}
+         onChange={(e) => setter(e.target.value)}
+         className="w-full bg-white/[0.02] border border-white/5 p-6 rounded-3xl text-purple-400 font-mono text-sm focus:outline-none focus:border-purple-500/50 transition-all"
+         placeholder="••••••••••••"
+       />
     </div>
   )
 }
