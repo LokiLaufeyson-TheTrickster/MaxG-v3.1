@@ -46,9 +46,9 @@ const ParticleSystem = () => {
 
     class Particle {
       x: number; y: number; vx: number; vy: number; size: number;
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+      constructor(w: number, h: number) {
+        this.x = Math.random() * w;
+        this.y = Math.random() * h;
         this.vx = (Math.random() - 0.5) * 0.5;
         this.vy = (Math.random() - 0.5) * 0.5;
         this.size = Math.random() * 2;
@@ -70,7 +70,7 @@ const ParticleSystem = () => {
 
     const init = () => {
       particles = [];
-      for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+      for (let i = 0; i < particleCount; i++) particles.push(new Particle(canvas.width, canvas.height));
     };
 
     const animate = () => {
