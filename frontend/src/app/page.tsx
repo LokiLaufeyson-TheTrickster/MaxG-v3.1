@@ -51,12 +51,19 @@ export default function ModernDashboard() {
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
 
-  const mockPositions: Position[] = [
-    { asset: 'NIFTY 23500 CE', side: 'Long', size: '500 Qty', pnl: 42410.20, pnlPercent: 4.2 },
-    { asset: 'NIFTY 23600 PE', side: 'Short', size: '1000 Qty', pnl: -14412.05, pnlPercent: -1.5 },
-    { asset: 'BANKNIFTY 51000 CE', side: 'Long', size: '150 Qty', pnl: 28942.50, pnlPercent: 3.1 },
-    { asset: 'NIFTY 23450 CE', side: 'Long', size: '250 Qty', pnl: 11002.11, pnlPercent: 1.8 },
-  ];
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [metrics, setMetrics] = useState({
+    equity: "₹0.00",
+    dailyPnl: "₹0.00",
+    dailyPnlPercent: "0.0%",
+    marginUtil: "0.0%",
+    activeHedges: "00"
+  });
+  const [pulse, setPulse] = useState({
+    latency: 82,
+    cpu: 22.1,
+    mem: "Stable"
+  });
 
   const fetchSignals = async () => {
     try {
@@ -161,10 +168,10 @@ export default function ModernDashboard() {
 
           {/* METRIC GRID */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <MetricCard label="Total Equity" value="₹24,21,109.43" color="cyan" />
-            <MetricCard label="Daily P&L" value="+₹1,12,042.11" subValue="(4.9%)" color="emerald" />
-            <MetricCard label="Margin Util" value="14.2%" color="blue" />
-            <MetricCard label="Active Hedges" value="03" subValue="Active" color="rose" />
+            <MetricCard label="Total Equity" value={metrics.equity} color="cyan" />
+            <MetricCard label="Daily P&L" value={metrics.dailyPnl} subValue={`(${metrics.dailyPnlPercent})`} color="emerald" />
+            <MetricCard label="Margin Util" value={metrics.marginUtil} color="blue" />
+            <MetricCard label="Active Hedges" value={metrics.activeHedges} subValue="Active" color="rose" />
           </div>
 
           {/* MAIN GRID */}
@@ -175,7 +182,7 @@ export default function ModernDashboard() {
               <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2">
                   Active Positions
-                  <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-slate-500">04</span>
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-slate-500">{positions.length.toString().padStart(2, '0')}</span>
                 </h3>
                 <RefreshCw onClick={fetchSignals} className="w-4 h-4 text-slate-500 cursor-pointer hover:text-white transition-colors" />
               </div>
@@ -190,7 +197,7 @@ export default function ModernDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {mockPositions.map((pos, i) => (
+                    {positions.map((pos, i) => (
                       <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
@@ -208,6 +215,12 @@ export default function ModernDashboard() {
                     ))}
                   </tbody>
                 </table>
+                {positions.length === 0 && (
+                  <div className="py-20 text-center flex flex-col items-center gap-3">
+                    <Activity className="w-8 h-8 text-slate-700 animate-pulse-slow" />
+                    <p className="text-sm text-slate-500 font-medium tracking-wide">No active structural positions detected.</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -218,9 +231,9 @@ export default function ModernDashboard() {
               <div className="dashboard-card p-8 space-y-6">
                 <h3 className="font-bold">System Pulse</h3>
                 <div className="space-y-4">
-                  <PulseBar label="Latency Std Dev" value={82} color="cyan" />
-                  <PulseBar label="CPU Load Cluster" value={22.1} color="blue" />
-                  <PulseBar label="Mem State" value="Stable" color="emerald" isText />
+                  <PulseBar label="Latency Std Dev" value={pulse.latency} color="cyan" />
+                  <PulseBar label="CPU Load Cluster" value={pulse.cpu} color="blue" />
+                  <PulseBar label="Mem State" value={pulse.mem} color="emerald" isText />
                 </div>
               </div>
 
@@ -237,9 +250,15 @@ export default function ModernDashboard() {
                            <span className="text-cyan-400 font-bold">{sig.Strike}</span>
                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        Structural 9-EMA pullback confirmed. Regime delta is positive with 84% confidence.
+                        Regime audit complete for {sig.Strike}. Structural integrity verified.
                      </div>
                    ))}
+                   {signals.length === 0 && (
+                     <div className="flex-1 flex flex-col items-center justify-center gap-2 opacity-50">
+                        <Cpu className="w-5 h-5 text-slate-600" />
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-slate-600">No Live Intelligence</span>
+                     </div>
+                   )}
                 </div>
                 <button className="btn-primary w-full mt-8 flex items-center justify-center gap-2 text-xs">
                   View Live Audit <ChevronRight className="w-3 h-3" />
