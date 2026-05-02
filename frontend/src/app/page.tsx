@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Settings, 
@@ -8,11 +8,24 @@ import {
   Activity, 
   Cpu, 
   Lock, 
-  ArrowRight, 
   RefreshCw,
-  Zap,
-  MousePointer2
+  LayoutDashboard,
+  PieChart,
+  History,
+  AlertTriangle,
+  ExternalLink,
+  ChevronRight,
+  Monitor,
+  Zap
 } from 'lucide-react';
+
+interface Position {
+  asset: string;
+  side: 'Long' | 'Short';
+  size: string;
+  pnl: number;
+  pnlPercent: number;
+}
 
 interface Signal {
   Time?: string;
@@ -26,83 +39,23 @@ interface Signal {
   SL: number;
 }
 
-// --- CANVAS PARTICLE ENGINE ---
-const ParticleSystem = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let particles: any[] = [];
-    const particleCount = 60;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    class Particle {
-      x: number; y: number; vx: number; vy: number; size: number;
-      constructor(w: number, h: number) {
-        this.x = Math.random() * w;
-        this.y = Math.random() * h;
-        this.vx = (Math.random() - 0.5) * 0.5;
-        this.vy = (Math.random() - 0.5) * 0.5;
-        this.size = Math.random() * 2;
-      }
-      update(w: number, h: number) {
-        this.x += this.vx;
-        this.y += this.vy;
-        if (this.x < 0 || this.x > w) this.vx *= -1;
-        if (this.y < 0 || this.y > h) this.vy *= -1;
-      }
-      draw() {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(139, 92, 246, 0.3)';
-        ctx.fill();
-      }
-    }
-
-    const init = () => {
-      particles = [];
-      for (let i = 0; i < particleCount; i++) particles.push(new Particle(canvas.width, canvas.height));
-    };
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        p.update(canvas.width, canvas.height);
-        p.draw();
-      });
-      requestAnimationFrame(animate);
-    };
-
-    window.addEventListener('resize', resize);
-    resize();
-    init();
-    animate();
-
-    return () => window.removeEventListener('resize', resize);
-  }, []);
-
-  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />;
-};
-
-export default function Dashboard() {
+export default function ModernDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
+  const [latency, setLatency] = useState(12);
+  
   // Credentials
   const [gitToken, setGitToken] = useState("");
   const [growwSecret, setGrowwSecret] = useState("");
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+
+  const mockPositions: Position[] = [
+    { asset: 'BTC-PERP', side: 'Long', size: '4.20 BTC', pnl: 2410.20, pnlPercent: 1.2 },
+    { asset: 'ETH-PERP', side: 'Short', size: '120.0 ETH', pnl: -412.05, pnlPercent: -0.5 },
+    { asset: 'SOL-PERP', side: 'Long', size: '2,100.0 SOL', pnl: 942.50, pnlPercent: 2.1 },
+    { asset: 'ARB-PERP', side: 'Long', size: '45,000 ARB', pnl: 1002.11, pnlPercent: 0.8 },
+  ];
 
   const fetchSignals = async () => {
     try {
@@ -118,13 +71,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSignals();
-    const handleMouse = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleMouse);
+    const interval = setInterval(() => {
+      setLatency(prev => Math.max(8, Math.min(25, prev + (Math.random() - 0.5) * 5)));
+    }, 3000);
+    
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
-    return () => window.removeEventListener('mousemove', handleMouse);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const saveSettings = () => {
@@ -136,150 +92,254 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-[#07080B] text-[#E4E4E7] font-sans selection:bg-indigo-500/30 overflow-x-hidden relative">
+    <div className="flex min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-hidden">
       
-      <ParticleSystem />
-
-      {/* CURSOR SPOTLIGHT */}
-      <div 
-        className="fixed pointer-events-none z-10 w-[600px] h-[600px] bg-indigo-600/5 blur-[120px] rounded-full transition-opacity duration-500"
-        style={{ left: mousePos.x - 300, top: mousePos.y - 300 }}
-      />
-
-      <nav className="h-20 flex items-center justify-between px-12 relative z-[100] border-b border-white/5 bg-[#07080B]/50 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Shield className="w-6 h-6 text-white" />
+      {/* BACKGROUND GRID */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03]" 
+           style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+      
+      {/* SIDEBAR */}
+      <aside className="w-20 border-r border-white/5 bg-[#020617]/50 backdrop-blur-xl flex flex-col items-center py-8 gap-10 z-50">
+        <div className="w-12 h-12 bg-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20 mb-4">
+          <Shield className="w-6 h-6 text-slate-950" />
+        </div>
+        
+        <nav className="flex flex-col gap-6">
+          <SidebarIcon icon={<LayoutDashboard />} active />
+          <SidebarIcon icon={<Activity />} />
+          <SidebarIcon icon={<PieChart />} />
+          <SidebarIcon icon={<History />} />
+        </nav>
+        
+        <div className="mt-auto flex flex-col gap-6">
+          <SidebarIcon icon={<Settings onClick={() => setIsSettingsOpen(true)} />} />
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-bold">
+            MAX
           </div>
-          <span className="text-xl font-bold tracking-tight">MAXG <span className="text-zinc-500 font-normal underline decoration-indigo-500 underline-offset-4">SENTINEL</span></span>
         </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col relative z-10 overflow-y-auto">
         
-        <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 transition-all text-zinc-400 hover:text-white"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </nav>
+        {/* TOP BAR */}
+        <header className="h-20 border-b border-white/5 px-8 flex items-center justify-between sticky top-0 bg-[#020617]/80 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <Monitor className="w-5 h-5 text-slate-500" />
+            <h1 className="text-sm font-bold tracking-widest text-slate-400 uppercase">Modern Live Trade Monitor</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Engine_Stable</span>
+            </div>
+            
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Connected {Math.round(latency)}ms</span>
+            </div>
+          </div>
+        </header>
 
-      <div className="max-w-[1400px] mx-auto p-12 space-y-12 relative z-20">
-        
-        {/* HERO SECTION */}
-        <div className="space-y-4">
-           <h1 className="text-8xl font-black tracking-tightest leading-none">
-             FLUID <span className="text-indigo-500 italic">ALPHA.</span>
-           </h1>
-           <p className="text-zinc-500 text-xl max-w-2xl font-medium antialiased text-balance">
-             Structural intelligence capture engine. Scaled via asymmetric multi-regime monitoring and Gemini-Flash precision.
-           </p>
-        </div>
-
-        {/* DATA MODULES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           <FluidCard icon={<TrendingUp />} label="Captured Alpha" value="+₹24,423" color="indigo" />
-           <FluidCard icon={<Activity />} label="Trend Lock" value="89.4%" color="purple" />
-           <FluidCard icon={<Cpu />} label="Engine Latency" value="9ms" color="emerald" />
-        </div>
-
-        <div className="grid grid-cols-12 gap-8">
-           {/* SIGNAL STREAM */}
-           <div className="col-span-12 lg:col-span-8 bg-zinc-900/40 border border-white/5 backdrop-blur-3xl rounded-[2.5rem] p-10 shadow-2xl overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl group-hover:bg-indigo-500/20 transition-all" />
-              <div className="flex items-center justify-between mb-10">
-                 <h2 className="text-3xl font-bold tracking-tight italic">Operational <span className="text-indigo-500">Stream.</span></h2>
-                 <RefreshCw onClick={fetchSignals} className="w-5 h-5 text-zinc-600 cursor-pointer hover:text-white transition-colors" />
+        <div className="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+          
+          {/* HEADER SECTION */}
+          <div className="flex items-end justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                 <Zap className="w-4 h-4 text-cyan-400" />
+                 <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">System Active</span>
               </div>
+              <h2 className="text-3xl font-bold tracking-tight">STRUCTURAL_INTEL_v1.0</h2>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Last Update</div>
+              <div className="text-sm font-mono text-slate-400">{new Date().toLocaleTimeString()}</div>
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                 {signals.map((sig, i) => (
-                   <div key={i} className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.05] transition-all group/row">
-                      <div className="flex items-center gap-6">
-                         <div className="text-sm font-mono text-zinc-600">{sig.Time || sig.Timestamp}</div>
-                         <div className="text-xl font-bold tracking-tight underline decoration-indigo-500/50 decoration-2 underline-offset-4 uppercase">{sig.Strike}</div>
-                      </div>
-                      <div className="text-2xl font-bold text-zinc-100 italic tracking-tighter">{sig.LTP || sig.Entry_LTP}</div>
-                   </div>
-                 ))}
-                 {signals.length === 0 && <div className="py-20 text-center text-zinc-600">Scanning market structural regimes...</div>}
+          {/* METRIC GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <MetricCard label="Total Equity" value="$242,109.43" color="cyan" />
+            <MetricCard label="Daily P&L" value="+$12,042.11" subValue="(4.9%)" color="emerald" />
+            <MetricCard label="Margin Util" value="14.2%" color="blue" />
+            <MetricCard label="Active Hedges" value="03" subValue="Active" color="rose" />
+          </div>
+
+          {/* MAIN GRID */}
+          <div className="grid grid-cols-12 gap-8">
+            
+            {/* POSITIONS TABLE */}
+            <div className="col-span-12 lg:col-span-8 dashboard-card p-0 overflow-hidden">
+              <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between">
+                <h3 className="font-bold flex items-center gap-2">
+                  Active Positions
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] text-slate-500">04</span>
+                </h3>
+                <RefreshCw onClick={fetchSignals} className="w-4 h-4 text-slate-500 cursor-pointer hover:text-white transition-colors" />
               </div>
-           </div>
-
-           {/* INTEL FEED */}
-           <div className="col-span-12 lg:col-span-4 bg-zinc-900/40 border border-white/5 backdrop-blur-3xl rounded-[2.5rem] p-10 flex flex-col justify-between">
-              <div>
-                 <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-8">AI Intelligence</h3>
-                 <div className="space-y-6">
-                    {signals.slice(0, 3).map((sig, i) => (
-                      <p key={i} className="text-sm text-zinc-400 leading-relaxed border-l-2 border-indigo-500 pl-4">
-                        Structural 9-EMA pullback confirmed on {sig.Strike}. Regime delta is positive.
-                      </p>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-white/[0.02]">
+                    <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <th className="px-8 py-4">Asset</th>
+                      <th className="px-8 py-4">Size</th>
+                      <th className="px-8 py-4 text-right">P&L</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {mockPositions.map((pos, i) => (
+                      <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black ${pos.side === 'Long' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                              {pos.side[0]}
+                            </span>
+                            <span className="font-bold text-slate-200">{pos.asset}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-sm font-medium text-slate-400">{pos.size}</td>
+                        <td className={`px-8 py-5 text-right font-bold ${pos.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {pos.pnl >= 0 ? '+' : ''}{pos.pnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </td>
+                      </tr>
                     ))}
-                 </div>
+                  </tbody>
+                </table>
               </div>
-              <button className="mt-12 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all active:scale-95 shadow-lg shadow-indigo-600/20">
-                 View Live Audit
-              </button>
-           </div>
-        </div>
-      </div>
+            </div>
 
-      {/* SECURITY HQ MODAL */}
+            {/* SYSTEM PULSE & INTEL */}
+            <div className="col-span-12 lg:col-span-4 flex flex-col gap-8">
+              
+              {/* SYSTEM PULSE */}
+              <div className="dashboard-card p-8 space-y-6">
+                <h3 className="font-bold">System Pulse</h3>
+                <div className="space-y-4">
+                  <PulseBar label="Latency Std Dev" value={82} color="cyan" />
+                  <PulseBar label="CPU Load Cluster" value={22.1} color="blue" />
+                  <PulseBar label="Mem State" value="Stable" color="emerald" isText />
+                </div>
+              </div>
+
+              {/* RECENT ALERTS */}
+              <div className="dashboard-card p-8 flex-1 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                   <h3 className="font-bold">AI Intelligence</h3>
+                   <AlertTriangle className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="space-y-4 flex-1">
+                   {signals.slice(0, 3).map((sig, i) => (
+                     <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl text-xs text-slate-400 leading-relaxed group hover:border-cyan-500/30 transition-all cursor-pointer">
+                        <div className="flex items-center justify-between mb-2">
+                           <span className="text-cyan-400 font-bold">{sig.Strike}</span>
+                           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        Structural 9-EMA pullback confirmed. Regime delta is positive with 84% confidence.
+                     </div>
+                   ))}
+                </div>
+                <button className="btn-primary w-full mt-8 flex items-center justify-center gap-2 text-xs">
+                  View Live Audit <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* SETTINGS MODAL */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-3xl flex items-center justify-center z-[200] p-6">
-          <div className="bg-zinc-900 border border-zinc-800 p-12 w-full max-w-2xl rounded-[3rem] shadow-2xl relative">
-             <div className="flex items-center gap-4 mb-10">
-                <Lock className="w-8 h-8 text-indigo-500" />
-                <h2 className="text-3xl font-bold tracking-tighter italic">Auth HQ.</h2>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-[200] p-6">
+          <div className="dashboard-card p-10 w-full max-w-xl relative">
+             <div className="flex items-center gap-4 mb-8">
+                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-cyan-400" />
+                </div>
+                <h2 className="text-xl font-bold">Authentication HQ</h2>
              </div>
              
-             <div className="grid grid-cols-2 gap-8 mb-12">
-                <div className="col-span-2">
-                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">GitHub Personal Access Token</label>
-                   <input type="password" value={gitToken} onChange={(e) => setGitToken(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
+             <div className="space-y-6 mb-10">
+                <InputGroup label="GitHub Personal Access Token" value={gitToken} onChange={setGitToken} />
+                <div className="grid grid-cols-2 gap-6">
+                   <InputGroup label="Groww Secret" value={growwSecret} onChange={setGrowwSecret} />
+                   <InputGroup label="Groww Session" value={growwToken} onChange={setGrowwToken} />
                 </div>
-                <div className="col-span-1">
-                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Groww Secret</label>
-                   <input type="password" value={growwSecret} onChange={(e) => setGrowwSecret(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
-                </div>
-                <div className="col-span-1">
-                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Groww Session</label>
-                   <input type="password" value={growwToken} onChange={(e) => setGrowwToken(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
-                </div>
-                <div className="col-span-2">
-                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-2 mb-2 block">Gemini API Audit Key</label>
-                   <input type="password" value={geminiKey} onChange={(e) => setGeminiKey(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-indigo-400 font-mono text-sm focus:outline-none focus:border-indigo-600/50" />
-                </div>
+                <InputGroup label="Gemini API Audit Key" value={geminiKey} onChange={setGeminiKey} />
              </div>
 
              <div className="flex gap-4">
-                <button onClick={saveSettings} className="flex-1 py-5 bg-indigo-600 rounded-2xl font-bold text-sm tracking-widest uppercase">Save Authentication</button>
-                <button onClick={() => setIsSettingsOpen(false)} className="px-10 py-5 text-zinc-500 font-bold">Abort</button>
+                <button onClick={saveSettings} className="btn-primary flex-1">Save Configuration</button>
+                <button onClick={() => setIsSettingsOpen(false)} className="px-6 py-2 text-slate-500 font-bold hover:text-slate-300 transition-colors">Cancel</button>
              </div>
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 
-function FluidCard({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: string, color: string }) {
-  const colorMap: any = {
-    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-    purple: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+function SidebarIcon({ icon, active, onClick }: { icon: React.ReactNode, active?: boolean, onClick?: () => void }) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`p-3 rounded-xl cursor-pointer transition-all ${active ? 'bg-cyan-500/10 text-cyan-500' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+    >
+      {React.cloneElement(icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, subValue, color }: { label: string, value: string, subValue?: string, color: 'cyan' | 'emerald' | 'blue' | 'rose' }) {
+  const colors = {
+    cyan: 'text-cyan-400',
+    emerald: 'text-emerald-400',
+    blue: 'text-blue-400',
+    rose: 'text-rose-400'
   };
 
   return (
-    <div className="bg-zinc-900/40 border border-white/5 backdrop-blur-3xl p-8 rounded-[2rem] hover:border-white/20 transition-all group">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border ${colorMap[color]}`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { className: "w-6 h-6" })}
+    <div className="dashboard-card p-6 group hover:border-white/10 transition-all">
+      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{label}</div>
+      <div className="flex items-baseline gap-2">
+        <div className={`text-2xl font-bold tracking-tight ${colors[color]}`}>{value}</div>
+        {subValue && <div className="text-xs font-medium text-slate-500">{subValue}</div>}
       </div>
-      <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">{label}</h3>
-      <div className="text-3xl font-bold tracking-tighter">{value}</div>
     </div>
-  )
+  );
+}
+
+function PulseBar({ label, value, color, isText }: { label: string, value: number | string, color: string, isText?: boolean }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-mono text-slate-300">{isText ? value : `${value}%`}</span>
+      </div>
+      {!isText && (
+        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          <div 
+            className={`h-full bg-${color}-500 transition-all duration-1000`} 
+            style={{ width: `${value}%` }} 
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InputGroup({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">{label}</label>
+      <input 
+        type="password" 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-slate-800/50 border border-white/5 px-4 py-3 rounded-lg text-sm text-cyan-400 focus:outline-none focus:border-cyan-500/50 transition-all" 
+      />
+    </div>
+  );
 }

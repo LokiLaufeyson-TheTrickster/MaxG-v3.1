@@ -3,32 +3,62 @@
 @tailwind utilities;
 
 :root {
-  --background: #050505;
-  --foreground: #ededed;
-  --accent: #00ffcc;
-  --glass: rgba(255, 255, 255, 0.05);
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --card-border: rgba(255, 255, 255, 0.05);
+  --accent-cyan: #22d3ee;
+  --accent-blue: #3b82f6;
+  --accent-emerald: #10b981;
+  --accent-rose: #f43f5e;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', sans-serif;
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-50 antialiased selection:bg-cyan-500/30;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
 }
 
-.glass-card {
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+@layer components {
+  .dashboard-card {
+    @apply bg-slate-900/40 border border-white/5 backdrop-blur-xl rounded-2xl shadow-2xl;
+  }
+  
+  .metric-value {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  
+  .metric-label {
+    @apply text-[10px] font-bold text-slate-500 uppercase tracking-widest;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg transition-all active:scale-95 shadow-lg shadow-cyan-500/20;
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px -5px rgba(34, 211, 238, 0.3);
+  }
 }
 
-.glow-text {
-  text-shadow: 0 0 10px var(--accent);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700;
 }
 
-.gradient-border {
-  border: 1px solid transparent;
-  background: linear-gradient(var(--background), var(--background)) padding-box,
-              linear-gradient(45deg, var(--accent), #0066ff) border-box;
+/* Animation Utilities */
+.animate-pulse-slow {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
