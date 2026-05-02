@@ -40,6 +40,7 @@ interface Signal {
 }
 
 export default function ModernDashboard() {
+  const [currentView, setCurrentView] = useState('dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [latency, setLatency] = useState(12);
@@ -51,10 +52,10 @@ export default function ModernDashboard() {
   const [geminiKey, setGeminiKey] = useState("");
 
   const mockPositions: Position[] = [
-    { asset: 'BTC-PERP', side: 'Long', size: '4.20 BTC', pnl: 2410.20, pnlPercent: 1.2 },
-    { asset: 'ETH-PERP', side: 'Short', size: '120.0 ETH', pnl: -412.05, pnlPercent: -0.5 },
-    { asset: 'SOL-PERP', side: 'Long', size: '2,100.0 SOL', pnl: 942.50, pnlPercent: 2.1 },
-    { asset: 'ARB-PERP', side: 'Long', size: '45,000 ARB', pnl: 1002.11, pnlPercent: 0.8 },
+    { asset: 'NIFTY 23500 CE', side: 'Long', size: '500 Qty', pnl: 42410.20, pnlPercent: 4.2 },
+    { asset: 'NIFTY 23600 PE', side: 'Short', size: '1000 Qty', pnl: -14412.05, pnlPercent: -1.5 },
+    { asset: 'BANKNIFTY 51000 CE', side: 'Long', size: '150 Qty', pnl: 28942.50, pnlPercent: 3.1 },
+    { asset: 'NIFTY 23450 CE', side: 'Long', size: '250 Qty', pnl: 11002.11, pnlPercent: 1.8 },
   ];
 
   const fetchSignals = async () => {
@@ -105,10 +106,10 @@ export default function ModernDashboard() {
         </div>
         
         <nav className="flex flex-col gap-6">
-          <SidebarIcon icon={<LayoutDashboard />} active />
-          <SidebarIcon icon={<Activity />} />
-          <SidebarIcon icon={<PieChart />} />
-          <SidebarIcon icon={<History />} />
+          <SidebarIcon icon={<LayoutDashboard />} active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
+          <SidebarIcon icon={<Activity />} active={currentView === 'activity'} onClick={() => setCurrentView('activity')} />
+          <SidebarIcon icon={<PieChart />} active={currentView === 'analytics'} onClick={() => setCurrentView('analytics')} />
+          <SidebarIcon icon={<History />} active={currentView === 'history'} onClick={() => setCurrentView('history')} />
         </nav>
         
         <div className="mt-auto flex flex-col gap-6">
@@ -160,8 +161,8 @@ export default function ModernDashboard() {
 
           {/* METRIC GRID */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <MetricCard label="Total Equity" value="$242,109.43" color="cyan" />
-            <MetricCard label="Daily P&L" value="+$12,042.11" subValue="(4.9%)" color="emerald" />
+            <MetricCard label="Total Equity" value="₹24,21,109.43" color="cyan" />
+            <MetricCard label="Daily P&L" value="+₹1,12,042.11" subValue="(4.9%)" color="emerald" />
             <MetricCard label="Margin Util" value="14.2%" color="blue" />
             <MetricCard label="Active Hedges" value="03" subValue="Active" color="rose" />
           </div>
@@ -201,7 +202,7 @@ export default function ModernDashboard() {
                         </td>
                         <td className="px-8 py-5 text-sm font-medium text-slate-400">{pos.size}</td>
                         <td className={`px-8 py-5 text-right font-bold ${pos.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {pos.pnl >= 0 ? '+' : ''}{pos.pnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                          {pos.pnl >= 0 ? '+' : ''}{pos.pnl.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                         </td>
                       </tr>
                     ))}
