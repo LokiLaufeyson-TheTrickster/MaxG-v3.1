@@ -144,7 +144,7 @@ export async function POST(request: Request) {
     if (Array.isArray(expiries)) {
       const first = expiries[0];
       if (typeof first === 'object' && first !== null) {
-        nearestExpiry = first.expiry_date || first.expiryDate || first.expiry || '';
+        nearestExpiry = (first as any).expiry_date || (first as any).expiryDate || (first as any).expiry || '';
       } else if (typeof first === 'string') {
         nearestExpiry = first;
       }
@@ -153,16 +153,30 @@ export async function POST(request: Request) {
       const values = Object.values(expiries);
       const first = values[0];
       if (typeof first === 'object' && first !== null) {
-        nearestExpiry = first.expiry_date || first.expiryDate || first.expiry || '';
+        nearestExpiry = (first as any).expiry_date || (first as any).expiryDate || (first as any).expiry || '';
       } else if (typeof first === 'string') {
         nearestExpiry = first;
       }
     }
 
+
     // Clean the date (ensure it's YYYY-MM-DD)
     if (nearestExpiry && typeof nearestExpiry === 'string') {
-      // If it's a full ISO string, trim to date
+      nearestExpiry = nearestExpiry.trim();
+      // Handle full ISO string (2026-05-07T00:00:00.000Z)
       if (nearestExpiry.includes('T')) nearestExpiry = nearestExpiry.split('T')[0];
+      
+      // Handle DD-MM-YYYY format
+      if (/^\d{2}-\d{2}-\d{4}$/.test(nearestExpiry)) {
+        const [d, m, y] = nearestExpiry.split('-');
+        nearestExpiry = `${y}-${m}-${d}`;
+      }
+      
+      // Handle DD/MM/YYYY format
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(nearestExpiry)) {
+        const [d, m, y] = nearestExpiry.split('/');
+        nearestExpiry = `${y}-${m}-${d}`;
+      }
     }
 
     if (!nearestExpiry) {
@@ -174,7 +188,8 @@ export async function POST(request: Request) {
     }
 
     lastStep = 'fetch_option_chain';
-    const chainRes = await fetch(`https://api.groww.in/v1/option-chain/exchange/NSE/underlying/NIFTY?expiry_date=${nearestExpiry}`, {
+    const chainUrl = `https://api.groww.in/v1/option-chain/exchange/NSE/underlying/NIFTY?expiry_date=${nearestExpiry}`;
+    const chainRes = await fetch(chainUrl, {
       headers: {
         ...commonHeaders,
         'Authorization': `Bearer ${sessionToken}`,
@@ -186,10 +201,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: 'Failed to fetch option chain', 
         details: err, 
-        expiry_used: nearestExpiry, // Add this for debugging
+        expiry_used: nearestExpiry,
+        url_called: chainUrl,
         step: lastStep 
       }, { status: chainRes.status });
     }
+
 
 
     const chainData = await safeJson(chainRes);
