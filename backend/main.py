@@ -37,7 +37,7 @@ class MaxGCore:
         
         self.monitor = PersistenceMonitor()
         self.dashboard = MaxGDashboard()
-        self.sentinel = NtfySentinel(topic=os.getenv("NTFY_TOPIC", "maxg_v31_signals"))
+        self.sentinel = NtfySentinel(url="https://ntfy.sh", topic="maxg_v31_signals")
         self.gatekeeper = GeminiGatekeeper(os.getenv("GOOGLE_API_KEY"))
         self.persistor = GitHubPersistor()
         

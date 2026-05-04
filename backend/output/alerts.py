@@ -2,7 +2,7 @@ import requests
 import json
 
 class NtfySentinel:
-    def __init__(self, url: str = "https://ntfy.sh", topic: str = "maxg_v31"):
+    def __init__(self, url: str = "https://ntfy.sh", topic: str = "maxg_v31_signals"):
         self.url = f"{url}/{topic}"
 
     def send_signal(self, payload: dict):

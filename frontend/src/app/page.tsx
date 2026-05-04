@@ -18,6 +18,7 @@ import {
   Monitor,
   Zap
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Position {
   asset: string;
@@ -40,7 +41,6 @@ interface Signal {
 }
 
 export default function ModernDashboard() {
-  const [currentView, setCurrentView] = useState('dashboard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [latency, setLatency] = useState(12);
@@ -50,6 +50,9 @@ export default function ModernDashboard() {
   const [growwSecret, setGrowwSecret] = useState("");
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+
+  const [niftyData, setNiftyData] = useState<{time: string, price: number}[]>([]);
+  const [optionsData, setOptionsData] = useState<{strike: string, callLTP: number, putLTP: number, callDelta: number, putDelta: number}[]>([]);
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [metrics, setMetrics] = useState({
@@ -83,12 +86,68 @@ export default function ModernDashboard() {
       setLatency(prev => Math.max(8, Math.min(25, prev + (Math.random() - 0.5) * 5)));
     }, 3000);
     
+    const dataInterval = setInterval(async () => {
+      const gSecret = localStorage.getItem("maxg_groww_secret");
+      const gToken = localStorage.getItem("maxg_groww_token");
+      
+      if (gSecret && gToken) {
+        try {
+          const res = await fetch('/api/groww', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: gToken, totpSecret: gSecret })
+          });
+
+          if (!res.ok) throw new Error('API request failed');
+          
+          const data = await res.json();
+          const spot = data.underlying_ltp || 0;
+          const strikes = data.strikes || {};
+          
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          
+          setNiftyData(prev => {
+            const newData = [...prev, { time: timeStr, price: parseFloat(spot.toFixed(2)) }];
+            if (newData.length > 60) newData.shift();
+            return newData;
+          });
+
+          // Process options data
+          const atm = Math.round(spot / 50) * 50;
+          const relevantStrikes = [atm - 100, atm - 50, atm, atm + 50, atm + 100];
+          
+          const newOptions = relevantStrikes.map(strike => {
+            const strikeStr = strike.toString();
+            const strikeData = strikes[strikeStr] || {};
+            const ce = strikeData.CE || {};
+            const pe = strikeData.PE || {};
+            
+            return {
+              strike: strikeStr,
+              callLTP: ce.ltp || 0,
+              putLTP: pe.ltp || 0,
+              callDelta: ce.greeks?.delta || 0,
+              putDelta: pe.greeks?.delta || 0
+            };
+          });
+          
+          setOptionsData(newOptions);
+        } catch (e) {
+          console.error("Live fetch failed", e);
+        }
+      }
+    }, 1000);
+    
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearInterval(dataInterval);
+    };
   }, []);
 
   const saveSettings = () => {
@@ -113,14 +172,11 @@ export default function ModernDashboard() {
         </div>
         
         <nav className="flex flex-col gap-6">
-          <SidebarIcon icon={<LayoutDashboard />} active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
-          <SidebarIcon icon={<Activity />} active={currentView === 'activity'} onClick={() => setCurrentView('activity')} />
-          <SidebarIcon icon={<PieChart />} active={currentView === 'analytics'} onClick={() => setCurrentView('analytics')} />
-          <SidebarIcon icon={<History />} active={currentView === 'history'} onClick={() => setCurrentView('history')} />
+          <SidebarIcon icon={<LayoutDashboard />} active />
         </nav>
         
         <div className="mt-auto flex flex-col gap-6">
-          <SidebarIcon icon={<Settings onClick={() => setIsSettingsOpen(true)} />} />
+          <SidebarIcon icon={<Settings />} onClick={() => setIsSettingsOpen(true)} />
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-[10px] font-bold">
             MAX
           </div>
@@ -173,6 +229,69 @@ export default function ModernDashboard() {
             <MetricCard label="Margin Util" value={metrics.marginUtil} color="blue" />
             <MetricCard label="Active Hedges" value={metrics.activeHedges} subValue="Active" color="rose" />
           </div>
+
+          {/* NIFTY REALTIME DATA (CONDITIONAL) */}
+          {(growwSecret && growwToken) && (
+            <div className="grid grid-cols-12 gap-8">
+              <div className="col-span-12 lg:col-span-8 dashboard-card p-6 flex flex-col bg-[#020617]/50 backdrop-blur-md border border-cyan-500/20">
+                 <h3 className="font-bold flex items-center gap-2 mb-4 text-cyan-400">
+                   <TrendingUp className="w-5 h-5" />
+                   NIFTY Real-time Stream
+                   <span className="ml-auto px-2 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] uppercase rounded-full animate-pulse tracking-widest border border-emerald-500/20">
+                     Live
+                   </span>
+                 </h3>
+                 <div className="flex-1 min-h-[300px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <LineChart data={niftyData}>
+                       <XAxis dataKey="time" stroke="#475569" fontSize={10} tickMargin={10} />
+                       <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={10} width={60} />
+                       <Tooltip 
+                          contentStyle={{ backgroundColor: '#020617', border: '1px solid rgba(34, 211, 238, 0.2)', borderRadius: '8px' }}
+                          itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
+                          labelStyle={{ color: '#94a3b8' }}
+                       />
+                       <Line type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
+                     </LineChart>
+                   </ResponsiveContainer>
+                 </div>
+              </div>
+
+              <div className="col-span-12 lg:col-span-4 dashboard-card p-0 overflow-hidden bg-[#020617]/50 backdrop-blur-md border border-slate-700/50">
+                <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                  <h3 className="font-bold text-sm text-slate-300 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-slate-400" />
+                    Relevant Options Data
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-center text-xs">
+                    <thead className="bg-white/[0.02]">
+                      <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5">
+                        <th className="py-3 px-2">Call LTP</th>
+                        <th className="py-3 px-2 text-cyan-500">Strike</th>
+                        <th className="py-3 px-2">Put LTP</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {optionsData.map((opt, i) => (
+                        <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-2 text-emerald-400 font-medium">{opt.callLTP.toFixed(2)}</td>
+                          <td className="py-3 px-2 font-bold text-slate-300 bg-white/[0.01]">{opt.strike}</td>
+                          <td className="py-3 px-2 text-rose-400 font-medium">{opt.putLTP.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                      {optionsData.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="py-8 text-slate-500 text-center">Awaiting data stream...</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* MAIN GRID */}
           <div className="grid grid-cols-12 gap-8">
