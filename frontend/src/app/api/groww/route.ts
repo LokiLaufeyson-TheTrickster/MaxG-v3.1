@@ -9,14 +9,6 @@ async function safeJson(response: Response) {
     const buffer = await response.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     
-    // Log for debugging
-    console.log(`Response Status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
-    
-    // Check for GZIP signature (1f 8b) - just in case it's not handled
-    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
-      console.warn('Response appears to be GZIP encoded but was not decompressed by fetch.');
-    }
-
     let text = '';
     // Detect UTF-16 BOM
     if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
@@ -27,39 +19,34 @@ async function safeJson(response: Response) {
       text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
     }
 
-    // Clean the text: remove BOM, null bytes, and non-printable chars at start
     const cleanText = text
       .replace(/^[\uFEFF\uFFFE\u0000-\u001F\u007F-\u009F\uFFFD]+/, '')
       .trim();
     
-    // Find the first occurrence of { or [ and the last occurrence of } or ]
     const firstBrace = cleanText.search(/[\{\[]/);
     const lastBrace = Math.max(cleanText.lastIndexOf('}'), cleanText.lastIndexOf(']'));
     
     if (firstBrace === -1 || lastBrace === -1) {
+      // If no JSON found, return the raw text for debugging if it's short
+      if (cleanText.length < 500) return { raw: cleanText };
       throw new Error('No JSON structure found in response');
     }
     
     const jsonText = cleanText.substring(firstBrace, lastBrace + 1);
-    
-    try {
-      return JSON.parse(jsonText);
-    } catch (e) {
-      console.error('Failed to parse JSON. JSON text snippet:', jsonText.substring(0, 200));
-      throw e;
-    }
+    return JSON.parse(jsonText);
   } catch (error: any) {
-    console.error('safeJson Error:', error.message);
-    throw new Error(`Upstream API Response Error: ${error.message}`);
+    throw new Error(`JSON Parse Error: ${error.message}`);
   }
 }
 
 export async function POST(request: Request) {
+  let lastStep = 'initialization';
   try {
     const { apiKey, totpSecret } = await request.json();
+    lastStep = 'parse_request_body';
 
     if (!apiKey || !totpSecret) {
-      return NextResponse.json({ error: 'API Key and TOTP Secret are required' }, { status: 400 });
+      return NextResponse.json({ error: 'API Key and TOTP Secret are required', step: lastStep }, { status: 400 });
     }
 
     const cacheKey = `${apiKey}-${totpSecret}`;
@@ -68,8 +55,9 @@ export async function POST(request: Request) {
 
     if (cached && cached.expiry > Date.now()) {
       sessionToken = cached.token;
+      lastStep = 'use_cached_token';
     } else {
-      console.log('Refreshing session token...');
+      lastStep = 'generate_totp';
       const totp = new OTPAuth.TOTP({
         secret: totpSecret.replace(/\s/g, ''),
         digits: 6,
@@ -78,12 +66,12 @@ export async function POST(request: Request) {
       });
       const code = totp.generate();
 
+      lastStep = 'fetch_access_token';
       const authRes = await fetch('https://api.groww.in/v1/token/api/access', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
-          'x-client-id': 'growwapi',
         },
         body: JSON.stringify({
           key_type: 'totp',
@@ -93,11 +81,15 @@ export async function POST(request: Request) {
 
       if (!authRes.ok) {
         const errorData = await safeJson(authRes).catch(() => ({ msg: 'Auth failed' }));
-        return NextResponse.json({ error: 'Auth failed', details: errorData }, { status: authRes.status });
+        return NextResponse.json({ error: 'Auth failed', details: errorData, step: lastStep }, { status: authRes.status });
       }
 
       const authData = await safeJson(authRes);
       sessionToken = authData.token;
+
+      if (!sessionToken) {
+        throw new Error('Token not found in auth response');
+      }
 
       sessionCache.set(cacheKey, { 
         token: sessionToken, 
@@ -105,45 +97,48 @@ export async function POST(request: Request) {
       });
     }
 
-    // Fetch expiries
+    lastStep = 'fetch_expiries';
     const expiryRes = await fetch(`https://api.groww.in/v1/historical/expiries?exchange=NSE&underlying_symbol=NIFTY`, {
       headers: {
         'Authorization': `Bearer ${sessionToken}`,
-        'x-client-id': 'growwapi',
       },
     });
 
     if (!expiryRes.ok) {
       const err = await safeJson(expiryRes).catch(() => ({}));
-      return NextResponse.json({ error: 'Failed to fetch expiries', details: err }, { status: expiryRes.status });
+      return NextResponse.json({ error: 'Failed to fetch expiries', details: err, step: lastStep }, { status: expiryRes.status });
     }
 
     const expiries = await safeJson(expiryRes);
-    const nearestExpiry = Array.isArray(expiries) ? expiries[0] : null;
+    const nearestExpiry = Array.isArray(expiries) ? expiries[0] : (typeof expiries === 'object' ? Object.values(expiries)[0] : null);
 
     if (!nearestExpiry) {
-      return NextResponse.json({ error: 'No active expiries found' }, { status: 404 });
+      return NextResponse.json({ error: 'No active expiries found', details: expiries, step: lastStep }, { status: 404 });
     }
 
-    // Fetch Option Chain
+    lastStep = 'fetch_option_chain';
     const chainRes = await fetch(`https://api.groww.in/v1/option-chain/exchange/NSE/underlying/NIFTY?expiry_date=${nearestExpiry}`, {
       headers: {
         'Authorization': `Bearer ${sessionToken}`,
-        'x-client-id': 'growwapi',
       },
     });
 
     if (!chainRes.ok) {
       const err = await safeJson(chainRes).catch(() => ({}));
-      return NextResponse.json({ error: 'Failed to fetch option chain', details: err }, { status: chainRes.status });
+      return NextResponse.json({ error: 'Failed to fetch option chain', details: err, step: lastStep }, { status: chainRes.status });
     }
 
     const chainData = await safeJson(chainRes);
     return NextResponse.json(chainData);
 
   } catch (error: any) {
-    console.error('Groww API Proxy Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error(`Groww API Proxy Error at ${lastStep}:`, error);
+    return NextResponse.json({ 
+      error: error.message, 
+      step: lastStep,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   }
 }
+
 
