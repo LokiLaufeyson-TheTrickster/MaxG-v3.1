@@ -51,8 +51,9 @@ export default function ModernDashboard() {
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
 
-  const [niftyData, setNiftyData] = useState<{time: string, price: number}[]>([]);
-  const [optionsData, setOptionsData] = useState<{strike: string, callLTP: number, putLTP: number, callDelta: number, putDelta: number}[]>([]);
+   const [niftyData, setNiftyData] = useState<{time: string, price: number}[]>([]);
+   const [niftyPrice, setNiftyPrice] = useState(0);
+   const [optionsData, setOptionsData] = useState<{strike: string, callLTP: number, putLTP: number, callDelta: number, putDelta: number}[]>([]);
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [metrics, setMetrics] = useState({
