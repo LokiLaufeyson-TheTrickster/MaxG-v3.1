@@ -5,31 +5,52 @@ import * as OTPAuth from 'otpauth';
 const sessionCache = new Map<string, { token: string, expiry: number }>();
 
 async function safeJson(response: Response) {
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  
-  // Log a bit of the response for debugging
-  console.log(`Response Status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
-  console.log(`First few bytes:`, bytes.slice(0, 10));
-
-  let text = '';
-  // Detect UTF-16 BOM
-  if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
-    text = new TextDecoder('utf-16le').decode(bytes.slice(2));
-  } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
-    text = new TextDecoder('utf-16be').decode(bytes.slice(2));
-  } else {
-    text = new TextDecoder('utf-8').decode(bytes);
-  }
-
-  // Strip any remaining BOM or weird leading chars
-  const cleanText = text.replace(/^[\uFEFF\uFFFE\u0000-\u001F]+/, '').trim();
-  
   try {
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error('Failed to parse JSON. Cleaned text snippet:', cleanText.substring(0, 200));
-    throw new Error('Invalid JSON response from upstream API');
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    
+    // Log for debugging
+    console.log(`Response Status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+    
+    // Check for GZIP signature (1f 8b) - just in case it's not handled
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+      console.warn('Response appears to be GZIP encoded but was not decompressed by fetch.');
+    }
+
+    let text = '';
+    // Detect UTF-16 BOM
+    if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+      text = new TextDecoder('utf-16le').decode(bytes.slice(2));
+    } else if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      text = new TextDecoder('utf-16be').decode(bytes.slice(2));
+    } else {
+      text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    }
+
+    // Clean the text: remove BOM, null bytes, and non-printable chars at start
+    const cleanText = text
+      .replace(/^[\uFEFF\uFFFE\u0000-\u001F\u007F-\u009F\uFFFD]+/, '')
+      .trim();
+    
+    // Find the first occurrence of { or [ and the last occurrence of } or ]
+    const firstBrace = cleanText.search(/[\{\[]/);
+    const lastBrace = Math.max(cleanText.lastIndexOf('}'), cleanText.lastIndexOf(']'));
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error('No JSON structure found in response');
+    }
+    
+    const jsonText = cleanText.substring(firstBrace, lastBrace + 1);
+    
+    try {
+      return JSON.parse(jsonText);
+    } catch (e) {
+      console.error('Failed to parse JSON. JSON text snippet:', jsonText.substring(0, 200));
+      throw e;
+    }
+  } catch (error: any) {
+    console.error('safeJson Error:', error.message);
+    throw new Error(`Upstream API Response Error: ${error.message}`);
   }
 }
 
@@ -125,3 +146,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

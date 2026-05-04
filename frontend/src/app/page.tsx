@@ -250,9 +250,9 @@ export default function ModernDashboard() {
                      Live
                    </span>
                  </h3>
-                 <div className="h-[300px] w-full relative overflow-hidden">
-                   {isMounted && (
-                     <ResponsiveContainer key="nifty-chart" width="100%" height="100%" minWidth={0}>
+                 <div className="h-[300px] w-full relative overflow-hidden min-h-0 min-w-0">
+                   {isMounted && niftyData.length > 0 && (
+                     <ResponsiveContainer key="nifty-chart" width="100%" height="100%" debounce={1}>
                        <LineChart data={niftyData}>
                          <XAxis dataKey="time" stroke="#475569" fontSize={10} tickMargin={10} />
                          <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={10} width={60} />
@@ -264,6 +264,11 @@ export default function ModernDashboard() {
                          <Line type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
                        </LineChart>
                      </ResponsiveContainer>
+                   )}
+                   {isMounted && niftyData.length === 0 && (
+                     <div className="h-full w-full flex items-center justify-center text-slate-500 text-xs italic">
+                       Initializing data stream...
+                     </div>
                    )}
                  </div>
               </div>
