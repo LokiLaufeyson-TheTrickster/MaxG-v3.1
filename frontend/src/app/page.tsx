@@ -250,9 +250,9 @@ export default function ModernDashboard() {
                      Live
                    </span>
                  </h3>
-                 <div className="h-[300px] w-full">
+                 <div className="h-[300px] w-full relative overflow-hidden">
                    {isMounted && (
-                     <ResponsiveContainer width="100%" height="100%">
+                     <ResponsiveContainer key="nifty-chart" width="100%" height="100%" minWidth={0}>
                        <LineChart data={niftyData}>
                          <XAxis dataKey="time" stroke="#475569" fontSize={10} tickMargin={10} />
                          <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={10} width={60} />
