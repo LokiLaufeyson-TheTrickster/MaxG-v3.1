@@ -63,46 +63,64 @@ export async function POST(request: Request) {
       sessionToken = cached.token;
       lastStep = 'use_cached_token';
     } else {
+      lastStep = 'validate_totp_secret';
+      // Basic validation: Base32 (TOTP Secret) shouldn't have dots or underscores.
+      // JWTs (API Key) almost always have dots and often underscores.
+      if (totpSecret.includes('.') || totpSecret.includes('_')) {
+        return NextResponse.json({ 
+          error: 'It looks like you entered your Groww API Key (JWT) into the "Groww TOTP Secret" field. Please swap them in the settings.',
+          step: lastStep 
+        }, { status: 400 });
+      }
+
       lastStep = 'generate_totp';
-      const totp = new OTPAuth.TOTP({
-        secret: totpSecret.replace(/\s/g, ''),
-        digits: 6,
-        period: 30,
-        algorithm: 'SHA1',
-      });
-      const code = totp.generate();
+      try {
+        const totp = new OTPAuth.TOTP({
+          secret: totpSecret.replace(/\s/g, '').toUpperCase(),
+          digits: 6,
+          period: 30,
+          algorithm: 'SHA1',
+        });
+        const code = totp.generate();
 
-      lastStep = 'fetch_access_token';
-      const authRes = await fetch('https://api.groww.in/v1/token/api/access', {
-        method: 'POST',
-        headers: {
-          ...commonHeaders,
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          key_type: 'totp',
-          totp: code,
-        }),
-      });
+        lastStep = 'fetch_access_token';
+        const authRes = await fetch('https://api.groww.in/v1/token/api/access', {
+          method: 'POST',
+          headers: {
+            ...commonHeaders,
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            key_type: 'totp',
+            totp: code,
+          }),
+        });
 
-      if (!authRes.ok) {
-        const errorData = await safeJson(authRes).catch(() => ({ msg: 'Auth failed' }));
-        return NextResponse.json({ error: 'Auth failed', details: errorData, step: lastStep }, { status: authRes.status });
+        if (!authRes.ok) {
+          const errorData = await safeJson(authRes).catch(() => ({ msg: 'Auth failed' }));
+          return NextResponse.json({ error: 'Auth failed', details: errorData, step: lastStep }, { status: authRes.status });
+        }
+
+        const authData = await safeJson(authRes);
+        sessionToken = authData.token;
+
+        if (!sessionToken) {
+          throw new Error('Token not found in auth response');
+        }
+
+        sessionCache.set(cacheKey, { 
+          token: sessionToken, 
+          expiry: Date.now() + 30 * 60 * 1000 
+        });
+      } catch (totpErr: any) {
+        return NextResponse.json({ 
+          error: `TOTP Generation failed: ${totpErr.message}. Ensure your TOTP Secret is a valid Base32 string.`,
+          step: lastStep 
+        }, { status: 400 });
       }
-
-      const authData = await safeJson(authRes);
-      sessionToken = authData.token;
-
-      if (!sessionToken) {
-        throw new Error('Token not found in auth response');
-      }
-
-      sessionCache.set(cacheKey, { 
-        token: sessionToken, 
-        expiry: Date.now() + 30 * 60 * 1000 
-      });
     }
+
 
     lastStep = 'fetch_expiries';
     const expiryRes = await fetch(`https://api.groww.in/v1/historical/expiries?exchange=NSE&underlying_symbol=NIFTY`, {

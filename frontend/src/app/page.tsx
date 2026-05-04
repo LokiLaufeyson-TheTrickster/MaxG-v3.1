@@ -419,8 +419,8 @@ export default function ModernDashboard() {
              <div className="space-y-6 mb-10">
                 <InputGroup label="GitHub Personal Access Token" value={gitToken} onChange={setGitToken} />
                 <div className="grid grid-cols-2 gap-6">
-                   <InputGroup label="Groww Secret" value={growwSecret} onChange={setGrowwSecret} />
-                   <InputGroup label="Groww Session" value={growwToken} onChange={setGrowwToken} />
+                   <InputGroup label="Groww TOTP Secret" value={growwSecret} onChange={setGrowwSecret} />
+                   <InputGroup label="Groww API Key (JWT)" value={growwToken} onChange={setGrowwToken} />
                 </div>
                 <InputGroup label="Gemini API Audit Key" value={geminiKey} onChange={setGeminiKey} />
              </div>
