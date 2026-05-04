@@ -40,6 +40,7 @@ async function safeJson(response: Response) {
 }
 
 export async function POST(request: Request) {
+  console.log('Groww API Proxy request received');
   let lastStep = 'initialization';
   try {
     const { apiKey, totpSecret } = await request.json();
@@ -52,6 +53,11 @@ export async function POST(request: Request) {
     const cacheKey = `${apiKey}-${totpSecret}`;
     const cached = sessionCache.get(cacheKey);
     let sessionToken = '';
+
+    const commonHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+    };
 
     if (cached && cached.expiry > Date.now()) {
       sessionToken = cached.token;
@@ -70,6 +76,7 @@ export async function POST(request: Request) {
       const authRes = await fetch('https://api.groww.in/v1/token/api/access', {
         method: 'POST',
         headers: {
+          ...commonHeaders,
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
@@ -100,6 +107,7 @@ export async function POST(request: Request) {
     lastStep = 'fetch_expiries';
     const expiryRes = await fetch(`https://api.groww.in/v1/historical/expiries?exchange=NSE&underlying_symbol=NIFTY`, {
       headers: {
+        ...commonHeaders,
         'Authorization': `Bearer ${sessionToken}`,
       },
     });
@@ -119,6 +127,7 @@ export async function POST(request: Request) {
     lastStep = 'fetch_option_chain';
     const chainRes = await fetch(`https://api.groww.in/v1/option-chain/exchange/NSE/underlying/NIFTY?expiry_date=${nearestExpiry}`, {
       headers: {
+        ...commonHeaders,
         'Authorization': `Bearer ${sessionToken}`,
       },
     });
@@ -136,7 +145,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       error: error.message, 
       step: lastStep,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: error.stack
     }, { status: 500 });
   }
 }
