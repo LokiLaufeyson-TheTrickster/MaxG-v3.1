@@ -136,29 +136,49 @@ export async function POST(request: Request) {
     }
 
     const expiries = await safeJson(expiryRes);
-    let nearestExpiry = '';
     
     // Log for debugging (will show in Vercel logs)
     console.log('Expiries response:', JSON.stringify(expiries));
+    
+    const isDate = (s: any) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.split('T')[0]);
 
-    if (Array.isArray(expiries)) {
-      const first = expiries[0];
-      if (typeof first === 'object' && first !== null) {
-        nearestExpiry = (first as any).expiry_date || (first as any).expiryDate || (first as any).expiry || '';
-      } else if (typeof first === 'string') {
-        nearestExpiry = first;
+    const findDate = (obj: any): string => {
+      if (!obj) return '';
+      if (isDate(obj)) return obj.split('T')[0];
+      
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          if (isDate(item)) return item.split('T')[0];
+          if (typeof item === 'object') {
+            const d = item.expiry_date || item.expiryDate || item.expiry;
+            if (isDate(d)) return d.split('T')[0];
+          }
+        }
+      } else if (typeof obj === 'object') {
+        // Check common fields first
+        const data = obj.data || obj.expiries || obj.values;
+        if (data) {
+          const d = findDate(data);
+          if (d) return d;
+        }
+        // Fallback: check all values
+        for (const val of Object.values(obj)) {
+          const d = findDate(val);
+          if (d) return d;
+        }
       }
-    } else if (typeof expiries === 'object' && expiries !== null) {
-      // Sometimes it's a map or a nested object
-      const values = Object.values(expiries);
-      const first = values[0];
-      if (typeof first === 'object' && first !== null) {
-        nearestExpiry = (first as any).expiry_date || (first as any).expiryDate || (first as any).expiry || '';
-      } else if (typeof first === 'string') {
-        nearestExpiry = first;
-      }
+      return '';
+    };
+
+    let nearestExpiry = findDate(expiries);
+
+    if (!nearestExpiry) {
+      return NextResponse.json({ 
+        error: 'No valid expiry date found in response', 
+        details: expiries, 
+        step: lastStep 
+      }, { status: 404 });
     }
-
 
     // Clean the date (ensure it's YYYY-MM-DD)
     if (nearestExpiry && typeof nearestExpiry === 'string') {
