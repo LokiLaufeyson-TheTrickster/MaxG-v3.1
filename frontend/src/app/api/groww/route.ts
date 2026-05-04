@@ -138,17 +138,39 @@ export async function POST(request: Request) {
     const expiries = await safeJson(expiryRes);
     let nearestExpiry = '';
     
+    // Log for debugging (will show in Vercel logs)
+    console.log('Expiries response:', JSON.stringify(expiries));
+
     if (Array.isArray(expiries)) {
       const first = expiries[0];
-      nearestExpiry = typeof first === 'object' ? (first.expiry_date || first.expiry || '') : first;
+      if (typeof first === 'object' && first !== null) {
+        nearestExpiry = first.expiry_date || first.expiryDate || first.expiry || '';
+      } else if (typeof first === 'string') {
+        nearestExpiry = first;
+      }
     } else if (typeof expiries === 'object' && expiries !== null) {
+      // Sometimes it's a map or a nested object
       const values = Object.values(expiries);
       const first = values[0];
-      nearestExpiry = typeof first === 'object' ? (first.expiry_date || first.expiry || '') : first;
+      if (typeof first === 'object' && first !== null) {
+        nearestExpiry = first.expiry_date || first.expiryDate || first.expiry || '';
+      } else if (typeof first === 'string') {
+        nearestExpiry = first;
+      }
+    }
+
+    // Clean the date (ensure it's YYYY-MM-DD)
+    if (nearestExpiry && typeof nearestExpiry === 'string') {
+      // If it's a full ISO string, trim to date
+      if (nearestExpiry.includes('T')) nearestExpiry = nearestExpiry.split('T')[0];
     }
 
     if (!nearestExpiry) {
-      return NextResponse.json({ error: 'No active expiries found', details: expiries, step: lastStep }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'No valid expiry date found in response', 
+        details: expiries, 
+        step: lastStep 
+      }, { status: 404 });
     }
 
     lastStep = 'fetch_option_chain';
@@ -161,8 +183,14 @@ export async function POST(request: Request) {
 
     if (!chainRes.ok) {
       const err = await safeJson(chainRes).catch(() => ({}));
-      return NextResponse.json({ error: 'Failed to fetch option chain', details: err, step: lastStep }, { status: chainRes.status });
+      return NextResponse.json({ 
+        error: 'Failed to fetch option chain', 
+        details: err, 
+        expiry_used: nearestExpiry, // Add this for debugging
+        step: lastStep 
+      }, { status: chainRes.status });
     }
+
 
     const chainData = await safeJson(chainRes);
     return NextResponse.json(chainData);
