@@ -62,6 +62,8 @@ export default function ModernDashboard() {
     marginUtil: "0.0%",
     activeHedges: "00"
   });
+  const [isMounted, setIsMounted] = useState(false);
+  const [currentTime, setCurrentTime] = useState("");
   const [pulse, setPulse] = useState({
     latency: 82,
     cpu: 22.1,
@@ -144,9 +146,16 @@ export default function ModernDashboard() {
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
     
+    setIsMounted(true);
+    setCurrentTime(new Date().toLocaleTimeString());
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+
     return () => {
       clearInterval(interval);
       clearInterval(dataInterval);
+      clearInterval(timeInterval);
     };
   }, []);
 
@@ -218,7 +227,7 @@ export default function ModernDashboard() {
             </div>
             <div className="text-right">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Last Update</div>
-              <div className="text-sm font-mono text-slate-400">{new Date().toLocaleTimeString()}</div>
+              <div className="text-sm font-mono text-slate-400">{currentTime || "--:--:--"}</div>
             </div>
           </div>
 
@@ -241,19 +250,21 @@ export default function ModernDashboard() {
                      Live
                    </span>
                  </h3>
-                 <div className="flex-1 min-h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <LineChart data={niftyData}>
-                       <XAxis dataKey="time" stroke="#475569" fontSize={10} tickMargin={10} />
-                       <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={10} width={60} />
-                       <Tooltip 
-                          contentStyle={{ backgroundColor: '#020617', border: '1px solid rgba(34, 211, 238, 0.2)', borderRadius: '8px' }}
-                          itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
-                          labelStyle={{ color: '#94a3b8' }}
-                       />
-                       <Line type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
-                     </LineChart>
-                   </ResponsiveContainer>
+                 <div className="h-[300px] w-full">
+                   {isMounted && (
+                     <ResponsiveContainer width="100%" height="100%">
+                       <LineChart data={niftyData}>
+                         <XAxis dataKey="time" stroke="#475569" fontSize={10} tickMargin={10} />
+                         <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={10} width={60} />
+                         <Tooltip 
+                            contentStyle={{ backgroundColor: '#020617', border: '1px solid rgba(34, 211, 238, 0.2)', borderRadius: '8px' }}
+                            itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
+                            labelStyle={{ color: '#94a3b8' }}
+                         />
+                         <Line type="monotone" dataKey="price" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
+                       </LineChart>
+                     </ResponsiveContainer>
+                   )}
                  </div>
               </div>
 

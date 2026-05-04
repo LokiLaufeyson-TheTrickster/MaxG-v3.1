@@ -4,6 +4,18 @@ import * as OTPAuth from 'otpauth';
 // Simple in-memory cache for session tokens
 const sessionCache = new Map<string, { token: string, expiry: number }>();
 
+async function safeJson(response: Response) {
+  const text = await response.text();
+  // Strip BOM if present (U+FEFF)
+  const cleanText = text.replace(/^\uFEFF/, '');
+  try {
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.error('Failed to parse JSON:', cleanText.substring(0, 100));
+    throw new Error('Invalid JSON response from upstream API');
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { apiKey, totpSecret } = await request.json();
@@ -19,7 +31,7 @@ export async function POST(request: Request) {
     if (cached && cached.expiry > Date.now()) {
       sessionToken = cached.token;
     } else {
-      // Generate TOTP
+      console.log('Refreshing session token...');
       const totp = new OTPAuth.TOTP({
         secret: totpSecret.replace(/\s/g, ''),
         digits: 6,
@@ -28,7 +40,6 @@ export async function POST(request: Request) {
       });
       const code = totp.generate();
 
-      // Get Access Token
       const authRes = await fetch('https://api.groww.in/v1/token/api/access', {
         method: 'POST',
         headers: {
@@ -43,23 +54,19 @@ export async function POST(request: Request) {
       });
 
       if (!authRes.ok) {
-        const errorData = await authRes.json();
+        const errorData = await safeJson(authRes);
         return NextResponse.json({ error: 'Auth failed', details: errorData }, { status: authRes.status });
       }
 
-      const authData = await authRes.json();
+      const authData = await safeJson(authRes);
       sessionToken = authData.token;
 
-      // Cache for 30 minutes (tokens usually last longer)
       sessionCache.set(cacheKey, { 
         token: sessionToken, 
         expiry: Date.now() + 30 * 60 * 1000 
       });
     }
 
-    // Now fetch Nifty Data (Option Chain)
-    // We'll use a hardcoded expiry or find the next one
-    // For now, let's try to get expiries first
     const expiryRes = await fetch(`https://api.groww.in/v1/historical/expiries?exchange=NSE&underlying_symbol=NIFTY`, {
       headers: {
         'Authorization': `Bearer ${sessionToken}`,
@@ -68,13 +75,17 @@ export async function POST(request: Request) {
     });
 
     if (!expiryRes.ok) {
-      return NextResponse.json({ error: 'Failed to fetch expiries' }, { status: expiryRes.status });
+      const err = await safeJson(expiryRes).catch(() => ({}));
+      return NextResponse.json({ error: 'Failed to fetch expiries', details: err }, { status: expiryRes.status });
     }
 
-    const expiries = await expiryRes.json();
-    const nearestExpiry = expiries[0]; // Assuming it's sorted
+    const expiries = await safeJson(expiryRes);
+    const nearestExpiry = Array.isArray(expiries) ? expiries[0] : null;
 
-    // Fetch Option Chain
+    if (!nearestExpiry) {
+      return NextResponse.json({ error: 'No active expiries found' }, { status: 404 });
+    }
+
     const chainRes = await fetch(`https://api.groww.in/v1/option-chain/exchange/NSE/underlying/NIFTY?expiry_date=${nearestExpiry}`, {
       headers: {
         'Authorization': `Bearer ${sessionToken}`,
@@ -83,10 +94,11 @@ export async function POST(request: Request) {
     });
 
     if (!chainRes.ok) {
-      return NextResponse.json({ error: 'Failed to fetch option chain' }, { status: chainRes.status });
+      const err = await safeJson(chainRes).catch(() => ({}));
+      return NextResponse.json({ error: 'Failed to fetch option chain', details: err }, { status: chainRes.status });
     }
 
-    const chainData = await chainRes.json();
+    const chainData = await safeJson(chainRes);
     return NextResponse.json(chainData);
 
   } catch (error: any) {
@@ -94,3 +106,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
