@@ -88,7 +88,10 @@ export default function ModernDashboard() {
       setLatency(prev => Math.max(8, Math.min(25, prev + (Math.random() - 0.5) * 5)));
     }, 3000);
     
-    const dataInterval = setInterval(async () => {
+    let pollingDelay = 2000;
+    let pollTimer: NodeJS.Timeout;
+
+    const pollData = async () => {
       const gSecret = localStorage.getItem("maxg_groww_secret");
       const gToken = localStorage.getItem("maxg_groww_token");
       
@@ -100,20 +103,35 @@ export default function ModernDashboard() {
             body: JSON.stringify({ apiKey: gToken, totpSecret: gSecret })
           });
 
-          if (!res.ok) throw new Error('API request failed');
+          if (res.status === 429) {
+            console.warn('Rate limited. Backing off...');
+            pollingDelay = Math.min(pollingDelay + 5000, 30000);
+            return;
+          }
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            console.error('API Error:', err);
+            return;
+          }
+          
+          // Success! Reset backoff
+          pollingDelay = 2000;
           
           const data = await res.json();
-          const spot = data.underlying_ltp || 0;
+          const spot = data.underlying_ltp || data.indicesLtp?.ltp || 0;
           const strikes = data.strikes || {};
           
           const now = new Date();
           const timeStr = now.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
           
-          setNiftyData(prev => {
-            const newData = [...prev, { time: timeStr, price: parseFloat(spot.toFixed(2)) }];
-            if (newData.length > 60) newData.shift();
-            return newData;
-          });
+          if (spot > 0) {
+            setNiftyData(prev => {
+              const newData = [...prev, { time: timeStr, price: parseFloat(spot.toFixed(2)) }];
+              return newData.slice(-60);
+            });
+            setNiftyPrice(spot);
+          }
 
           // Process options data
           const atm = Math.round(spot / 50) * 50;
@@ -139,7 +157,15 @@ export default function ModernDashboard() {
           console.error("Live fetch failed", e);
         }
       }
-    }, 1000);
+    };
+
+    const runPoll = () => {
+      pollData().finally(() => {
+        pollTimer = setTimeout(runPoll, pollingDelay);
+      });
+    };
+
+    runPoll();
     
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
@@ -154,7 +180,7 @@ export default function ModernDashboard() {
 
     return () => {
       clearInterval(interval);
-      clearInterval(dataInterval);
+      if (pollTimer) clearTimeout(pollTimer);
       clearInterval(timeInterval);
     };
   }, []);

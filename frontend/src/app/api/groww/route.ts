@@ -136,7 +136,16 @@ export async function POST(request: Request) {
     }
 
     const expiries = await safeJson(expiryRes);
-    const nearestExpiry = Array.isArray(expiries) ? expiries[0] : (typeof expiries === 'object' ? Object.values(expiries)[0] : null);
+    let nearestExpiry = '';
+    
+    if (Array.isArray(expiries)) {
+      const first = expiries[0];
+      nearestExpiry = typeof first === 'object' ? (first.expiry_date || first.expiry || '') : first;
+    } else if (typeof expiries === 'object' && expiries !== null) {
+      const values = Object.values(expiries);
+      const first = values[0];
+      nearestExpiry = typeof first === 'object' ? (first.expiry_date || first.expiry || '') : first;
+    }
 
     if (!nearestExpiry) {
       return NextResponse.json({ error: 'No active expiries found', details: expiries, step: lastStep }, { status: 404 });
