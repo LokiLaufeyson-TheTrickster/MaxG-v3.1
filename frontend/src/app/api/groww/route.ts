@@ -40,10 +40,11 @@ async function safeJson(response: Response) {
 }
 
 export async function POST(request: Request) {
-  console.log('Groww API Proxy request received');
   let lastStep = 'initialization';
   try {
-    const { apiKey, totpSecret } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const { apiKey, totpSecret, action } = body;
+
     lastStep = 'parse_request_body';
 
     if (!apiKey || !totpSecret) {
@@ -121,6 +122,29 @@ export async function POST(request: Request) {
       }
     }
 
+
+    if (action === 'getCandles') {
+      lastStep = 'fetch_historical_candles';
+      const endTime = new Date();
+      const startTime = new Date(endTime.getTime() - 60 * 60 * 1000); // 1 hour ago
+      
+      const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
+      
+      const candleRes = await fetch(`https://api.groww.in/v1/historical/candles?trading_symbol=NIFTY&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`, {
+        headers: {
+          ...commonHeaders,
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (!candleRes.ok) {
+        const err = await safeJson(candleRes).catch(() => ({}));
+        return NextResponse.json({ error: 'Failed to fetch candles', details: err, step: lastStep }, { status: candleRes.status });
+      }
+
+      const candleData = await safeJson(candleRes);
+      return NextResponse.json(candleData);
+    }
 
     lastStep = 'fetch_expiries';
     const expiryRes = await fetch(`https://api.groww.in/v1/historical/expiries?exchange=NSE&underlying_symbol=NIFTY`, {

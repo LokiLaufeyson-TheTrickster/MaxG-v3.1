@@ -50,6 +50,10 @@ export default function ModernDashboard() {
   const [growwSecret, setGrowwSecret] = useState("");
   const [growwToken, setGrowwToken] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [openRouterKey, setOpenRouterKey] = useState("");
+  const [openRouterModels, setOpenRouterModels] = useState("google/gemini-pro-1.5,anthropic/claude-3-haiku,meta-llama/llama-3-70b");
+  
+  const [testResults, setTestResults] = useState<Record<string, { status: 'idle' | 'testing' | 'success' | 'error', message?: string }>>({});
 
    const [niftyData, setNiftyData] = useState<{time: string, price: number}[]>([]);
    const [niftyPrice, setNiftyPrice] = useState(0);
@@ -71,12 +75,81 @@ export default function ModernDashboard() {
     mem: "Stable"
   });
 
+  const isMarketHours = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const timeVal = hours * 60 + minutes;
+    return timeVal >= 9 * 60 && timeVal < 16 * 60;
+  };
+
+  const isTradeAllowed = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const timeVal = hours * 60 + minutes;
+    return timeVal >= 9 * 60 + 15 && timeVal < 15 * 60 + 30;
+  };
+
+  const auditSignal = async (signal: Signal) => {
+    if (!isTradeAllowed()) return;
+    
+    const gemini = localStorage.getItem("maxg_gemini_key");
+    const orKey = localStorage.getItem("maxg_openrouter_key");
+    const orModels = (localStorage.getItem("maxg_openrouter_models") || "").split(',').filter(m => m);
+    const ghToken = localStorage.getItem("maxg_gh_token");
+
+    const modelsToTry = [];
+    if (gemini) modelsToTry.push({ type: 'gemini', key: gemini, model: 'gemini-1.5-pro' });
+    orModels.forEach(m => modelsToTry.push({ type: 'openrouter', key: orKey, model: m }));
+
+    let result = null;
+    let usedModel = '';
+
+    for (const m of modelsToTry) {
+      try {
+        const prompt = `Audit this Nifty trade signal: ${JSON.stringify(signal)}. Provide a clear Go/No-Go decision with brief rationale. Current Spot: ${niftyPrice}`;
+        
+        const url = m.type === 'gemini' 
+          ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${m.key}`
+          : 'https://openrouter.ai/api/v1/chat/completions';
+        
+        const body = m.type === 'gemini' 
+          ? { contents: [{ parts: [{ text: prompt }] }] }
+          : { model: m.model, messages: [{ role: 'user', content: prompt }] };
+
+        const headers: any = { 'Content-Type': 'application/json' };
+        if (m.type === 'openrouter') headers['Authorization'] = `Bearer ${m.key}`;
+
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        
+        if (res.ok) {
+          const data = await res.json();
+          result = m.type === 'gemini' ? data.candidates[0].content.parts[0].text : data.choices[0].message.content;
+          usedModel = m.model;
+          break;
+        }
+      } catch (e) {
+        console.error(`Audit failed for ${m.model}`, e);
+      }
+    }
+
+    if (result && ghToken) {
+      fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: ghToken, model: usedModel, content: `Signal: ${signal.Strike} | Audit: ${result}` })
+      });
+    }
+  };
+
   const fetchSignals = async () => {
     try {
       const res = await fetch("https://raw.githubusercontent.com/LokiLaufeyson-TheTrickster/MaxG-v3.1/main/data/signals.json");
       if (res.ok) {
         const data = (await res.json()) as Signal[];
         setSignals(data);
+        if (data.length > 0) auditSignal(data[0]);
       }
     } catch (e) {
       console.error("Fetch failed", e);
@@ -92,7 +165,29 @@ export default function ModernDashboard() {
     let pollingDelay = 2000;
     let pollTimer: NodeJS.Timeout;
 
+    const isMarketHours = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const timeVal = hours * 60 + minutes;
+      return timeVal >= 9 * 60 && timeVal < 16 * 60;
+    };
+
+    const isTradeAllowed = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const timeVal = hours * 60 + minutes;
+      return timeVal >= 9 * 60 + 15 && timeVal < 15 * 60 + 30;
+    };
+
     const pollData = async () => {
+      if (!isMarketHours()) {
+        console.log("Outside market hours. Skipping poll.");
+        pollingDelay = 60000; // Check once a minute when closed
+        return;
+      }
+
       const gSecret = localStorage.getItem("maxg_groww_secret");
       const gToken = localStorage.getItem("maxg_groww_token");
       
@@ -166,19 +261,47 @@ export default function ModernDashboard() {
       }
     };
 
+
+    const fetchHistoricalCandles = async (token: string | null, secret: string | null) => {
+      if (!token || !secret) return;
+      try {
+        const res = await fetch('/api/groww', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey: token, totpSecret: secret, action: 'getCandles' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const candles = data.payload?.candles || data.candles || [];
+          if (Array.isArray(candles)) {
+            const chartData = candles.map((c: any) => ({
+              time: new Date(c[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: c[4]
+            }));
+            setNiftyData(chartData);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch historical data", e);
+      }
+    };
+
     const runPoll = () => {
       pollData().finally(() => {
         pollTimer = setTimeout(runPoll, pollingDelay);
       });
     };
 
+    fetchHistoricalCandles(localStorage.getItem("maxg_groww_token"), localStorage.getItem("maxg_groww_secret"));
     runPoll();
     
     setGitToken(localStorage.getItem("maxg_gh_token") || "");
     setGrowwSecret(localStorage.getItem("maxg_groww_secret") || "");
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
-    
+    setOpenRouterKey(localStorage.getItem("maxg_openrouter_key") || "");
+    const savedModels = localStorage.getItem("maxg_openrouter_models");
+    if (savedModels) setOpenRouterModels(savedModels);
     setIsMounted(true);
     setCurrentTime(new Date().toLocaleTimeString());
     const timeInterval = setInterval(() => {
@@ -197,7 +320,28 @@ export default function ModernDashboard() {
     localStorage.setItem("maxg_groww_secret", growwSecret);
     localStorage.setItem("maxg_groww_token", growwToken);
     localStorage.setItem("maxg_gemini_key", geminiKey);
+    localStorage.setItem("maxg_openrouter_key", openRouterKey);
+    localStorage.setItem("maxg_openrouter_models", openRouterModels);
     setIsSettingsOpen(false);
+  };
+
+  const testKey = async (type: string, value: string, extra?: string) => {
+    setTestResults(prev => ({ ...prev, [type]: { status: 'testing' } }));
+    try {
+      const res = await fetch('/api/test-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, value, extra })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTestResults(prev => ({ ...prev, [type]: { status: 'success', message: 'Success' } }));
+      } else {
+        setTestResults(prev => ({ ...prev, [type]: { status: 'error', message: data.error || 'Failed' } }));
+      }
+    } catch (e) {
+      setTestResults(prev => ({ ...prev, [type]: { status: 'error', message: 'Network error' } }));
+    }
   };
 
   return (
@@ -449,14 +593,51 @@ export default function ModernDashboard() {
                 <h2 className="text-xl font-bold">Authentication HQ</h2>
              </div>
              
-             <div className="space-y-6 mb-10">
-                <InputGroup label="GitHub Personal Access Token" value={gitToken} onChange={setGitToken} />
-                <div className="grid grid-cols-2 gap-6">
-                   <InputGroup label="Groww TOTP Secret" value={growwSecret} onChange={setGrowwSecret} />
-                   <InputGroup label="Groww API Key (JWT)" value={growwToken} onChange={setGrowwToken} />
-                </div>
-                <InputGroup label="Gemini API Audit Key" value={geminiKey} onChange={setGeminiKey} />
-             </div>
+              <div className="space-y-6 mb-10 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+                 <InputGroup 
+                    label="GitHub Personal Access Token" 
+                    value={gitToken} 
+                    onChange={setGitToken} 
+                    onTest={() => testKey('github', gitToken)}
+                    testResult={testResults['github']}
+                 />
+                 <div className="grid grid-cols-2 gap-6">
+                    <InputGroup 
+                      label="Groww TOTP Secret" 
+                      value={growwSecret} 
+                      onChange={setGrowwSecret} 
+                      onTest={() => testKey('groww_totp', growwSecret)}
+                      testResult={testResults['groww_totp']}
+                    />
+                    <InputGroup 
+                      label="Groww API Key (JWT)" 
+                      value={growwToken} 
+                      onChange={setGrowwToken} 
+                      onTest={() => testKey('groww_api', growwToken, growwSecret)}
+                      testResult={testResults['groww_api']}
+                    />
+                 </div>
+                 <InputGroup 
+                    label="Gemini API Key" 
+                    value={geminiKey} 
+                    onChange={setGeminiKey} 
+                    onTest={() => testKey('gemini', geminiKey)}
+                    testResult={testResults['gemini']}
+                 />
+                 <InputGroup 
+                    label="OpenRouter API Key" 
+                    value={openRouterKey} 
+                    onChange={setOpenRouterKey} 
+                    onTest={() => testKey('openrouter', openRouterKey)}
+                    testResult={testResults['openrouter']}
+                 />
+                 <InputGroup 
+                    label="OpenRouter Models (Comma Separated)" 
+                    value={openRouterModels} 
+                    onChange={setOpenRouterModels} 
+                    type="text"
+                 />
+              </div>
 
              <div className="flex gap-4">
                 <button onClick={saveSettings} className="btn-primary flex-1">Save Configuration</button>
@@ -518,15 +699,30 @@ function PulseBar({ label, value, color, isText }: { label: string, value: numbe
   );
 }
 
-function InputGroup({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
+function InputGroup({ label, value, onChange, type = "password", onTest, testResult }: { label: string, value: string, onChange: (v: string) => void, type?: string, onTest?: () => void, testResult?: { status: string, message?: string } }) {
   return (
-    <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">{label}</label>
+    <div className="space-y-2 group">
+      <div className="flex items-center justify-between px-1">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-cyan-400 transition-colors">{label}</label>
+        {onTest && (
+          <div className="flex items-center gap-2">
+            {testResult?.status === 'success' && <span className="text-[9px] text-emerald-500 font-bold uppercase tracking-tighter">Success</span>}
+            {testResult?.status === 'error' && <span className="text-[9px] text-rose-500 font-bold uppercase tracking-tighter" title={testResult.message}>Error</span>}
+            <button 
+              onClick={onTest}
+              disabled={testResult?.status === 'testing'}
+              className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-white/10 ${testResult?.status === 'testing' ? 'opacity-50 cursor-wait' : 'hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all'}`}
+            >
+              {testResult?.status === 'testing' ? 'Testing...' : 'Test'}
+            </button>
+          </div>
+        )}
+      </div>
       <input 
-        type="password" 
-        value={value} 
+        type={type}
+        value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-800/50 border border-white/5 px-4 py-3 rounded-lg text-sm text-cyan-400 focus:outline-none focus:border-cyan-500/50 transition-all" 
+        className="w-full bg-slate-800/50 border border-white/5 px-4 py-3 rounded-lg text-sm text-cyan-400 focus:outline-none focus:border-cyan-500/50 transition-all font-mono" 
       />
     </div>
   );
