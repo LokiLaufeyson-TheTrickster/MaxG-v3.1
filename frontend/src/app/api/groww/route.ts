@@ -11,21 +11,30 @@ async function safeJson(response: Response) {
     
     // Helper to try parsing text as JSON
     const tryParse = (text: string) => {
-      const firstBrace = text.indexOf('{');
-      const firstBracket = text.indexOf('[');
+      // 1. Remove all control characters, null bytes, and BOMs
+      // This is the most aggressive possible cleaning
+      const clean = text
+        .replace(/[\u0000-\u001F\u007F-\u009F\uFEFF\uFFFE\uFFFD]/g, '')
+        .trim();
+      
+      const firstBrace = clean.indexOf('{');
+      const firstBracket = clean.indexOf('[');
       const start = (firstBrace === -1) ? firstBracket : (firstBracket === -1 ? firstBrace : Math.min(firstBrace, firstBracket));
       
-      const lastBrace = text.lastIndexOf('}');
-      const lastBracket = text.lastIndexOf(']');
+      const lastBrace = clean.lastIndexOf('}');
+      const lastBracket = clean.lastIndexOf(']');
       const end = Math.max(lastBrace, lastBracket);
       
       if (start !== -1 && end !== -1 && end > start) {
-        const jsonText = text.substring(start, end + 1);
+        const jsonText = clean.substring(start, end + 1);
         try { 
           return JSON.parse(jsonText); 
         } catch (e) { 
-          // If it looks like JSON but fails to parse, return it as a raw string for debugging
-          return { error: 'Parse Error', raw: jsonText.substring(0, 500) };
+          // Last ditch effort: remove everything that isn't valid JSON character
+          const superClean = jsonText.replace(/[^\u0020-\u007E\u00A0-\u00FF\u0100-\u017F\u0180-\u024F\{\}\[\]\":,0-9.-]/g, '');
+          try { return JSON.parse(superClean); } catch {
+            return { error: 'Parse Error', raw: jsonText.substring(0, 200) };
+          }
         }
       }
       return null;
@@ -153,10 +162,34 @@ export async function POST(request: Request) {
     }
 
 
+    if (action === 'getVix') {
+      lastStep = 'fetch_vix';
+      const vixUrl = `https://api.groww.in/v1/live_index/v1/index/INDIAVIX`;
+      const vixRes = await fetch(vixUrl, {
+        headers: {
+          ...commonHeaders,
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (!vixRes.ok) {
+        const err = await safeJson(vixRes).catch(() => ({}));
+        return NextResponse.json({ 
+          error: 'Failed to fetch VIX', 
+          details: err, 
+          url_called: vixUrl,
+          step: lastStep 
+        }, { status: vixRes.status });
+      }
+
+      const vixData = await safeJson(vixRes);
+      return NextResponse.json(vixData);
+    }
+
     if (action === 'getCandles') {
       lastStep = 'fetch_historical_candles';
       const endTime = new Date();
-      const startTime = new Date(endTime.getTime() - 60 * 60 * 1000); // 1 hour ago
+      const startTime = new Date(endTime.getTime() - 6 * 60 * 60 * 1000); // 6 hours ago
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
@@ -197,8 +230,8 @@ export async function POST(request: Request) {
 
     const expiries = await safeJson(expiryRes);
     
-    // Log for debugging (will show in Vercel logs)
-    console.log('Expiries response:', JSON.stringify(expiries));
+    // Log for debugging
+    console.log('Expiries response:', JSON.stringify(expiries).substring(0, 500));
     
     const isDate = (s: any) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.split('T')[0]);
 
@@ -209,19 +242,17 @@ export async function POST(request: Request) {
       if (Array.isArray(obj)) {
         for (const item of obj) {
           if (isDate(item)) return item.split('T')[0];
-          if (typeof item === 'object') {
+          if (typeof item === 'object' && item !== null) {
             const d = item.expiry_date || item.expiryDate || item.expiry;
             if (isDate(d)) return d.split('T')[0];
           }
         }
-      } else if (typeof obj === 'object') {
-        // Check common fields first
+      } else if (typeof obj === 'object' && obj !== null) {
         const data = obj.data || obj.expiries || obj.values;
         if (data) {
           const d = findDate(data);
           if (d) return d;
         }
-        // Fallback: check all values
         for (const val of Object.values(obj)) {
           const d = findDate(val);
           if (d) return d;
@@ -243,28 +274,15 @@ export async function POST(request: Request) {
     // Clean the date (ensure it's YYYY-MM-DD)
     if (nearestExpiry && typeof nearestExpiry === 'string') {
       nearestExpiry = nearestExpiry.trim();
-      // Handle full ISO string (2026-05-07T00:00:00.000Z)
       if (nearestExpiry.includes('T')) nearestExpiry = nearestExpiry.split('T')[0];
-      
-      // Handle DD-MM-YYYY format
       if (/^\d{2}-\d{2}-\d{4}$/.test(nearestExpiry)) {
         const [d, m, y] = nearestExpiry.split('-');
         nearestExpiry = `${y}-${m}-${d}`;
       }
-      
-      // Handle DD/MM/YYYY format
       if (/^\d{2}\/\d{2}\/\d{4}$/.test(nearestExpiry)) {
         const [d, m, y] = nearestExpiry.split('/');
         nearestExpiry = `${y}-${m}-${d}`;
       }
-    }
-
-    if (!nearestExpiry) {
-      return NextResponse.json({ 
-        error: 'No valid expiry date found in response', 
-        details: expiries, 
-        step: lastStep 
-      }, { status: 404 });
     }
 
     lastStep = 'fetch_option_chain';
@@ -287,8 +305,6 @@ export async function POST(request: Request) {
       }, { status: chainRes.status });
     }
 
-
-
     const chainData = await safeJson(chainRes);
     return NextResponse.json(chainData);
 
@@ -300,6 +316,8 @@ export async function POST(request: Request) {
       stack: error.stack
     }, { status: 500 });
   }
+}
+
 }
 
 
