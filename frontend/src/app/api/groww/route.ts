@@ -75,6 +75,7 @@ export async function POST(request: Request) {
     const commonHeaders = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       'Accept': 'application/json, text/plain, */*',
+      'X-API-VERSION': '1.0'
     };
 
     if (cached && cached.expiry > Date.now()) {
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
-      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=NSE-NIFTY&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&candle_interval=1minute`;
+      const candleUrl = `https://api.groww.in/v1/historical/candles?trading_symbol=NIFTY&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&candle_interval=1minute`;
       const candleRes = await fetch(candleUrl, {
         headers: {
           ...commonHeaders,
