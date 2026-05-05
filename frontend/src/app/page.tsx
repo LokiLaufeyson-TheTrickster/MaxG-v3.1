@@ -513,7 +513,7 @@ export default function ModernDashboard() {
           <div className="max-w-7xl mx-auto space-y-12">
             
             {activeTab === 'DASHBOARD' ? (
-              <>
+              <div className="space-y-12">
                 <div className="grid grid-cols-4 gap-6">
                   <IndicatorCard label="India Vix" value={vix.value.toString()} change={vix.change} trend={vix.trend} />
                   <IndicatorCard label="Nifty 50" value={niftyPrice.toFixed(2)} change="+0.48%" trend="up" />
@@ -626,7 +626,8 @@ export default function ModernDashboard() {
                         )}
                     </div>
                   </div>
-              </>
+                </div>
+              </div>
             ) : activeTab === 'POSITIONS' ? (
               <div className="space-y-8">
                  <div className="flex items-end justify-between">
