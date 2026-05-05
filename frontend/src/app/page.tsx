@@ -737,6 +737,51 @@ function MetricCard({ label, value, subValue, color }: { label: string, value: s
   );
 }
 
+
+// --- HELPER COMPONENTS ---
+
+function SidebarNavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${active ? 'bg-emerald-500/10 text-emerald-500' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+    >
+      {icon}
+      <span className="text-[10px] font-black tracking-widest uppercase">{label}</span>
+    </button>
+  );
+}
+
+function IndicatorCard({ label, value, change, trend }: { label: string, value: string, change: string, trend: 'up' | 'down' }) {
+  return (
+    <div className="trading-card p-6 space-y-3 group hover:border-emerald-500/30 transition-all cursor-pointer">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+        {trend === 'up' ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : <TrendingDown className="w-3 h-3 text-rose-500" />}
+      </div>
+      <div className="flex items-baseline justify-between">
+        <div className="text-xl font-black terminal-text tracking-tighter">{value}</div>
+        <div className={`text-[10px] font-bold ${trend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>{change}</div>
+      </div>
+      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${trend === 'up' ? 'bg-emerald-500' : 'bg-rose-500'} opacity-30`} style={{ width: '40%' }} />
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, subValue, color }: { label: string, value: string, subValue?: string, color: string }) {
+  return (
+    <div className="trading-card p-6 space-y-1">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+      <div className="flex items-baseline gap-2">
+        <div className="text-xl font-black terminal-text">₹{value}</div>
+        {subValue && <span className={`text-[10px] font-bold text-emerald-500`}>{subValue}</span>}
+      </div>
+    </div>
+  );
+}
+
 function PulseBar({ label, value, color, isText }: { label: string, value: number | string, color: string, isText?: boolean }) {
   return (
     <div className="space-y-2">
