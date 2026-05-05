@@ -9,33 +9,44 @@ async function safeJson(response: Response) {
     const buffer = await response.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     
-    let text = '';
-    // Detect UTF-16 BOM
-    if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
-      text = new TextDecoder('utf-16le').decode(bytes.slice(2));
-    } else if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
-      text = new TextDecoder('utf-16be').decode(bytes.slice(2));
-    } else {
-      text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-    }
+    // Helper to try parsing text as JSON
+    const tryParse = (text: string) => {
+      const cleanText = text
+        .replace(/^[\uFEFF\uFFFE\u0000-\u001F\u007F-\u009F\uFFFD]+/, '')
+        .trim();
+      
+      const firstBrace = cleanText.search(/[\{\[]/);
+      const lastBrace = Math.max(cleanText.lastIndexOf('}'), cleanText.lastIndexOf(']'));
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        const jsonText = cleanText.substring(firstBrace, lastBrace + 1);
+        try { return JSON.parse(jsonText); } catch { return null; }
+      }
+      return null;
+    };
 
-    const cleanText = text
-      .replace(/^[\uFEFF\uFFFE\u0000-\u001F\u007F-\u009F\uFFFD]+/, '')
-      .trim();
-    
-    const firstBrace = cleanText.search(/[\{\[]/);
-    const lastBrace = Math.max(cleanText.lastIndexOf('}'), cleanText.lastIndexOf(']'));
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-      // If no JSON found, return the raw text for debugging if it's short
-      if (cleanText.length < 500) return { raw: cleanText };
-      throw new Error('No JSON structure found in response');
-    }
-    
-    const jsonText = cleanText.substring(firstBrace, lastBrace + 1);
-    return JSON.parse(jsonText);
+    // 1. Try UTF-16LE (Most common for Groww's error responses)
+    const text16le = new TextDecoder('utf-16le').decode(bytes);
+    const json16le = tryParse(text16le);
+    if (json16le) return json16le;
+
+    // 2. Try UTF-16BE
+    const text16be = new TextDecoder('utf-16be').decode(bytes);
+    const json16be = tryParse(text16be);
+    if (json16be) return json16be;
+
+    // 3. Try UTF-8
+    const text8 = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    const json8 = tryParse(text8);
+    if (json8) return json8;
+
+    // Fallback: If nothing parsed but we have text, return it raw
+    const rawText = text8 || text16le;
+    if (rawText.length > 0 && rawText.length < 1000) return { raw: rawText };
+
+    throw new Error('Could not parse response as JSON in any encoding');
   } catch (error: any) {
-    throw new Error(`JSON Parse Error: ${error.message}`);
+    throw new Error(`Groww API Parse Failure: ${error.message}`);
   }
 }
 
@@ -142,7 +153,8 @@ export async function POST(request: Request) {
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
-      const candleRes = await fetch(`https://api.groww.in/v1/historical/candles?trading_symbol=NIFTY&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`, {
+      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`;
+      const candleRes = await fetch(candleUrl, {
         headers: {
           ...commonHeaders,
           'Authorization': `Bearer ${sessionToken}`,
@@ -151,7 +163,12 @@ export async function POST(request: Request) {
 
       if (!candleRes.ok) {
         const err = await safeJson(candleRes).catch(() => ({}));
-        return NextResponse.json({ error: 'Failed to fetch candles', details: err, step: lastStep }, { status: candleRes.status });
+        return NextResponse.json({ 
+          error: 'Failed to fetch candles', 
+          details: err, 
+          url_called: candleUrl,
+          step: lastStep 
+        }, { status: candleRes.status });
       }
 
       const candleData = await safeJson(candleRes);
