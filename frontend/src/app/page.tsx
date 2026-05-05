@@ -119,8 +119,11 @@ export default function ModernDashboard() {
           // Success! Reset backoff
           pollingDelay = 2000;
           
-          const data = await res.json();
-          const spot = data.underlying_ltp || data.indicesLtp?.ltp || 0;
+          const rawData = await res.json();
+          // Groww API often wraps data in a 'payload' object
+          const data = rawData.payload || rawData;
+          
+          const spot = data.underlying_ltp || data.indicesLtp?.ltp || data.ltp || 0;
           const strikes = data.strikes || {};
           
           const now = new Date();
@@ -135,28 +138,31 @@ export default function ModernDashboard() {
           }
 
           // Process options data
-          const atm = Math.round(spot / 50) * 50;
-          const relevantStrikes = [atm - 100, atm - 50, atm, atm + 50, atm + 100];
-          
-          const newOptions = relevantStrikes.map(strike => {
-            const strikeStr = strike.toString();
-            const strikeData = strikes[strikeStr] || {};
-            const ce = strikeData.CE || {};
-            const pe = strikeData.PE || {};
+          if (strikes && Object.keys(strikes).length > 0) {
+            const atm = Math.round(spot / 50) * 50;
+            const relevantStrikes = [atm - 100, atm - 50, atm, atm + 50, atm + 100];
             
-            return {
-              strike: strikeStr,
-              callLTP: ce.ltp || 0,
-              putLTP: pe.ltp || 0,
-              callDelta: ce.greeks?.delta || 0,
-              putDelta: pe.greeks?.delta || 0
-            };
-          });
-          
-          setOptionsData(newOptions);
+            const newOptions = relevantStrikes.map(strike => {
+              const strikeStr = strike.toString();
+              const strikeData = strikes[strikeStr] || {};
+              const ce = strikeData.CE || {};
+              const pe = strikeData.PE || {};
+              
+              return {
+                strike: strikeStr,
+                callLTP: ce.ltp || 0,
+                putLTP: pe.ltp || 0,
+                callDelta: ce.greeks?.delta || 0,
+                putDelta: pe.greeks?.delta || 0
+              };
+            });
+            
+            setOptionsData(newOptions);
+          }
         } catch (e) {
           console.error("Live fetch failed", e);
         }
+
       }
     };
 
