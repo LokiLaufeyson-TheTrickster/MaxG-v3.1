@@ -317,10 +317,12 @@ export default function ModernDashboard() {
                // Calculate PCR
                let totalCallOI = 0;
                let totalPutOI = 0;
-               chain.forEach((s: any) => {
-                  totalCallOI += (s.call?.open_interest || 0);
-                  totalPutOI += (s.put?.open_interest || 0);
-               });
+               if (Array.isArray(chain)) {
+                  chain.forEach((s: any) => {
+                     totalCallOI += (s.call?.open_interest || 0);
+                     totalPutOI += (s.put?.open_interest || 0);
+                  });
+               }
                const pcrVal = totalCallOI > 0 ? (totalPutOI / totalCallOI) : 0;
                setPcr(prev => ({ 
                   value: parseFloat(pcrVal.toFixed(2)), 
@@ -357,6 +359,7 @@ export default function ModernDashboard() {
                 const vData = await vRes.json();
                 const vVal = vData.last_price || vData.value || 0;
                 if (vVal > 0) {
+                   console.log(`[PROTOCOL] VIX Updated: ${vVal}`);
                    setVix(prev => ({ 
                       value: vVal, 
                       change: (vVal - prev.value).toFixed(2) + "%", 
