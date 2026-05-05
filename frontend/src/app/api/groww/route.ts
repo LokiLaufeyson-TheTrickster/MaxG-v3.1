@@ -11,7 +11,6 @@ async function safeJson(response: Response) {
     
     // Helper to try parsing text as JSON
     const tryParse = (text: string) => {
-      // Find JSON boundaries regardless of garbage
       const firstBrace = text.indexOf('{');
       const firstBracket = text.indexOf('[');
       const start = (firstBrace === -1) ? firstBracket : (firstBracket === -1 ? firstBrace : Math.min(firstBrace, firstBracket));
@@ -22,7 +21,12 @@ async function safeJson(response: Response) {
       
       if (start !== -1 && end !== -1 && end > start) {
         const jsonText = text.substring(start, end + 1);
-        try { return JSON.parse(jsonText); } catch { return null; }
+        try { 
+          return JSON.parse(jsonText); 
+        } catch (e) { 
+          // If it looks like JSON but fails to parse, return it as a raw string for debugging
+          return { error: 'Parse Error', raw: jsonText.substring(0, 500) };
+        }
       }
       return null;
     };
@@ -155,7 +159,7 @@ export async function POST(request: Request) {
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
-      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&candle_interval=1`;
+      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`;
       const candleRes = await fetch(candleUrl, {
         headers: {
           ...commonHeaders,
