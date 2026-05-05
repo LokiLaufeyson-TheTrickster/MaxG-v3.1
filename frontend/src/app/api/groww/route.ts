@@ -99,8 +99,20 @@ export async function POST(request: Request) {
         });
 
         if (!authRes.ok) {
-          const errorData = await safeJson(authRes).catch(() => ({ msg: 'Auth failed' }));
-          return NextResponse.json({ error: 'Auth failed', details: errorData, step: lastStep }, { status: authRes.status });
+          const rawErr = await authRes.text();
+          let errorData;
+          try {
+             errorData = JSON.parse(rawErr);
+          } catch {
+             errorData = { raw: rawErr };
+          }
+          return NextResponse.json({ 
+            error: 'Groww Authentication Failed', 
+            details: errorData, 
+            step: lastStep,
+            status: authRes.status,
+            hint: 'Ensure your GROWW_TOTP_TOKEN (JWT) is fresh and your TOTP Secret is correct.'
+          }, { status: authRes.status });
         }
 
         const authData = await safeJson(authRes);

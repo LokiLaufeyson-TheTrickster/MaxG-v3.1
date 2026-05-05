@@ -64,12 +64,13 @@ export default function ModernDashboard() {
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [metrics, setMetrics] = useState({
-    equity: "4,82,150.00",
-    dailyPnl: "32,562.50",
-    dailyPnlPercent: "+18.3%",
-    marginUtil: "44.3%",
-    activeHedges: "03"
+    equity: "1,00,000.00",
+    dailyPnl: "0.00",
+    dailyPnlPercent: "+0.0%",
+    marginUtil: "0.0%",
+    activeHedges: "00"
   });
+  const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [isMounted, setIsMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [pulse, setPulse] = useState({
@@ -138,17 +139,20 @@ export default function ModernDashboard() {
     // Parallel Audit Rule
     try {
       const prompt = `Audit for volatility_ok and regime_valid: ${JSON.stringify(signal)}. Respond ONLY in JSON: {"volatility_ok": bool, "regime_valid": bool}. Current Spot: ${niftyPrice}`;
+      const orUrl = 'https://openrouter.ai/api/v1/chat/completions';
+      const gUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`;
       
-      const [resGemini, resOR] = await Promise.all([
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        }),
-        fetch('https://openrouter.ai/api/v1/chat/completions', {
+      // Prioritize OpenRouter as P1
+      const [resOR, resGemini] = await Promise.all([
+        fetch(orUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${orKey}` },
           body: JSON.stringify({ model: 'anthropic/claude-3-haiku', messages: [{ role: 'user', content: prompt }] })
+        }),
+        fetch(gUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         })
       ]);
 
@@ -374,51 +378,57 @@ export default function ModernDashboard() {
     <div className="flex h-screen bg-[#080d17] text-slate-100 overflow-hidden font-sans selection:bg-emerald-500/30">
       
       {/* NEXUS SIDEBAR */}
-      <aside className="w-64 border-r border-white/[0.05] bg-[#080d17] flex flex-col z-50">
-        <div className="p-8 space-y-1">
-          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Portfolio</span>
-          <div className="text-2xl font-black tracking-tighter">₹{metrics.equity}</div>
-          <div className="text-[10px] font-bold text-emerald-500">{metrics.dailyPnlPercent} Day Gain</div>
+      <aside className="w-64 border-r border-white/5 bg-[#080d17] flex flex-col p-6 z-50 shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-emerald-500/5 blur-[100px] -z-10" />
+        
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 glow-emerald">
+              <Shield className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black tracking-tighter uppercase terminal-text">MaxG Sentinel</h1>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Protocol v3.1</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+             <SidebarNavItem icon={<LayoutDashboard size={16} />} label="Dashboard" active={activeTab === 'DASHBOARD'} onClick={() => setActiveTab('DASHBOARD')} />
+             <SidebarNavItem icon={<Activity size={16} />} label="Positions" active={activeTab === 'POSITIONS'} onClick={() => setActiveTab('POSITIONS')} />
+             <SidebarNavItem icon={<History size={16} />} label="History" active={activeTab === 'HISTORY'} onClick={() => setActiveTab('HISTORY')} />
+             <SidebarNavItem icon={<PieChart size={16} />} label="Analytics" active={activeTab === 'ANALYTICS'} onClick={() => setActiveTab('ANALYTICS')} />
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          <SidebarNavItem icon={<LayoutDashboard className="w-4 h-4" />} label="DASHBOARD" active />
-          <SidebarNavItem icon={<TrendingUp className="w-4 h-4" />} label="POSITIONS" />
-          <SidebarNavItem icon={<History className="w-4 h-4" />} label="HISTORY" />
-          <SidebarNavItem icon={<Shield className="w-4 h-4" />} label="ANALYTICS" />
-        </nav>
+        <div className="mt-auto p-6 space-y-6">
+           <div className="space-y-4">
+              <div className="space-y-1">
+                 <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    <span>Performance</span>
+                    <span className="text-emerald-500">{tradesToday > 0 ? "LIVE" : "IDLE"}</span>
+                 </div>
+                 <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className={`h-full bg-emerald-500 transition-all ${tradesToday > 0 ? 'w-full' : 'w-0'}`} />
+                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                 <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Trades</div>
+                    <div className="text-[12px] font-black text-emerald-500">{tradesToday}</div>
+                 </div>
+                 <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                    <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Drawdown</div>
+                    <div className="text-[12px] font-black text-rose-500">-{dailyLoss}R</div>
+                 </div>
+              </div>
+           </div>
 
-        <div className="mt-auto p-4 space-y-6">
-          <div className="px-4 space-y-4">
-             <div className="space-y-1">
-                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
-                   <span>Performance</span>
-                   <span className="text-emerald-500">68.2% WR</span>
-                </div>
-                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                   <div className="h-full bg-emerald-500 w-[68%]" />
-                </div>
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 bg-white/5 rounded border border-white/5">
-                   <div className="text-[8px] font-bold text-slate-500 uppercase">Avg Win</div>
-                   <div className="text-[10px] font-black text-emerald-500">+₹4,821</div>
-                </div>
-                <div className="p-2 bg-white/5 rounded border border-white/5">
-                   <div className="text-[8px] font-bold text-slate-500 uppercase">Avg Loss</div>
-                   <div className="text-[10px] font-black text-rose-500">-₹2,105</div>
-                </div>
-             </div>
-          </div>
-
-          <button onClick={() => setIsSettingsOpen(true)} className="w-full py-4 bg-[#00f291] hover:bg-[#00d17a] text-[#080d17] font-black text-xs uppercase tracking-[0.2em] rounded-lg transition-all shadow-xl shadow-emerald-500/10 active:scale-95">
-            NEW ORDER
-          </button>
-          
-          <div className="flex flex-col gap-1 pt-4 border-t border-white/[0.05]">
-            <SidebarNavItem icon={<Settings className="w-4 h-4" />} label="SUPPORT" />
-            <SidebarNavItem icon={<Lock className="w-4 h-4" />} label="LOGS" />
-          </div>
+           <button onClick={() => setIsSettingsOpen(true)} className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-[#080d17] font-black text-xs uppercase tracking-[0.2em] rounded-xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95">
+             PROTOCOL HQ
+           </button>
         </div>
       </aside>
 
@@ -426,16 +436,20 @@ export default function ModernDashboard() {
       <main className="flex-1 flex flex-col relative overflow-hidden bg-[#080d17]">
         
         {/* TOP NAV HEADER */}
-        <header className="glass-header flex items-center justify-between">
+        <header className="px-10 py-6 flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-8">
             <h1 className="text-sm font-black text-emerald-500 tracking-tighter italic">NIFTY_PRO</h1>
-            <nav className="flex gap-8">
-              {['Watchlist', 'Markets', 'F&O Analytics', 'Orders'].map((link) => (
-                <button key={link} className={`text-[11px] font-bold uppercase tracking-widest ${link === 'Orders' ? 'text-emerald-500 border-b-2 border-emerald-500 pb-1' : 'text-slate-500 hover:text-slate-300'}`}>
-                  {link}
+            <div className="flex gap-6">
+              {['WATCHLIST', 'MARKETS', 'F&O ANALYTICS', 'ORDERS'].map(item => (
+                <button 
+                  key={item} 
+                  onClick={() => setActiveTab(item)}
+                  className={`text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:text-emerald-500 ${activeTab === item ? 'text-emerald-500' : 'text-slate-500'}`}
+                >
+                  {item}
                 </button>
               ))}
-            </nav>
+            </div>
           </div>
           <div className="flex items-center gap-6">
             <Bell className="w-4 h-4 text-slate-500 cursor-pointer hover:text-white" />
@@ -446,162 +460,55 @@ export default function ModernDashboard() {
         </header>
 
         {/* SCROLLABLE VIEWPORT */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#080d17]">
-          <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar relative">
+          <div className="max-w-7xl mx-auto space-y-12">
             
-            <div className="flex items-end justify-between">
-              <div className="space-y-1">
-                <h2 className="text-4xl font-black tracking-tighter">Order Management</h2>
-                <p className="text-slate-500 text-sm font-medium">Monitor and manage your high-frequency trading activity.</p>
-              </div>
-              <div className="flex gap-2">
-                 <button className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-500/20">Active Positions</button>
-                 <button className="px-4 py-2 bg-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5">Open Orders</button>
-                 <button className="px-4 py-2 bg-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5">History</button>
-              </div>
-            </div>
+            {activeTab === 'DASHBOARD' ? (
+              <>
+                <div className="grid grid-cols-4 gap-6">
+                  <IndicatorCard label="India Vix" value="18.42" change="+2.15%" trend="up" />
+                  <IndicatorCard label="Nifty 50" value={niftyPrice.toFixed(2)} change="+0.48%" trend="up" />
+                  <IndicatorCard label="Put/Call Ratio" value="0.92" change="-0.02" trend="down" />
+                  <IndicatorCard label="Account Value" value="₹1,00,000.00" change="+0.0%" trend="up" />
+                </div>
 
-            {/* PERFORMANCE BAR */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-               <IndicatorCard label="INDIA VIX" value="18.42" change="+2.15%" trend="up" />
-               <IndicatorCard label="NIFTY 50" value={niftyPrice.toLocaleString()} change="+0.48%" trend="up" />
-               <IndicatorCard label="PUT/CALL RATIO" value="0.92" change="-0.02" trend="down" />
-               <IndicatorCard label="ACCOUNT VALUE" value={`₹${metrics.equity}`} change="+12.4%" trend="up" />
-            </div>
-
-            {/* MAIN HUB */}
-            <div className="grid grid-cols-12 gap-8">
-               
-               {/* PERFORMANCE & EXECUTION */}
-               <div className="col-span-12 lg:col-span-8 space-y-8">
-                  
-                  {/* REAL-TIME CHART */}
-                  <div className="trading-card p-8 h-[350px] flex flex-col">
-                     <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Live Index Performance</span>
-                        </div>
-                        <div className="flex gap-2">
-                           {['1H', '1D', '1W'].map(t => (
-                              <button key={t} className={`px-3 py-1 rounded text-[9px] font-black ${t === '1H' ? 'bg-emerald-500 text-[#080d17]' : 'bg-white/5 text-slate-500'}`}>{t}</button>
-                           ))}
-                        </div>
-                     </div>
-                     <div className="flex-1 min-h-0">
-                        {isMounted && niftyData.length > 0 ? (
-                           <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={niftyData}>
-                                 <defs>
-                                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                       <stop offset="5%" stopColor="#00f291" stopOpacity={0.2}/>
-                                       <stop offset="95%" stopColor="#00f291" stopOpacity={0}/>
-                                    </linearGradient>
-                                 </defs>
-                                 <XAxis dataKey="time" hide />
-                                 <YAxis domain={['auto', 'auto']} hide />
-                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: '#080d17', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '10px' }}
-                                    itemStyle={{ color: '#00f291' }}
-                                    cursor={{ stroke: 'rgba(0,242,145,0.2)', strokeWidth: 1 }}
-                                 />
-                                 <Area type="monotone" dataKey="price" stroke="#00f291" strokeWidth={2} fillOpacity={1} fill="url(#chartGradient)" isAnimationActive={false} />
-                              </AreaChart>
-                           </ResponsiveContainer>
-                        ) : (
-                           <div className="h-full w-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-800">
-                              Awaiting Data Stream...
-                           </div>
-                        )}
-                     </div>
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="col-span-2 trading-card p-10 min-h-[450px] relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]" />
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Index Performance</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        {['1H', '1D', '1W'].map(t => (
+                          <button key={t} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${t === '1H' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-white/5 text-slate-600 hover:text-slate-400'}`}>{t}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="h-[300px] w-full mt-4 flex items-center justify-center">
+                      {niftyData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={niftyData}>
+                            <defs>
+                              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                              itemStyle={{ color: '#10b981', fontWeight: 'bold', fontSize: '10px' }}
+                            />
+                            <Area type="monotone" dataKey="price" stroke="#10b981" fillOpacity={1} fill="url(#colorPrice)" strokeWidth={3} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="text-slate-800 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Awaiting Data Stream...</div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* EXECUTION DETAILS TABLE */}
-                  <div className="trading-card">
-                     <div className="px-8 py-5 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.01]">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Market Execution Details</h3>
-                        <div className="flex items-center gap-2">
-                           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                           <span className="text-[9px] font-bold text-emerald-500 uppercase">Streaming Live</span>
-                        </div>
-                     </div>
-                     <div className="overflow-x-auto">
-                        <table className="w-full text-[11px] terminal-text">
-                           <thead>
-                              <tr className="text-slate-500 border-b border-white/[0.03] uppercase">
-                                 <th className="py-4 px-8 text-left font-medium tracking-tighter">Instrument</th>
-                                 <th className="py-4 px-4 text-left font-medium tracking-tighter">Side</th>
-                                 <th className="py-4 px-4 text-left font-medium tracking-tighter">Size</th>
-                                 <th className="py-4 px-4 text-left font-medium tracking-tighter">Entry Price</th>
-                                 <th className="py-4 px-4 text-left font-medium tracking-tighter">Mark Price</th>
-                                 <th className="py-4 px-8 text-right font-medium tracking-tighter">P&L (Unrealized)</th>
-                              </tr>
-                           </thead>
-                           <tbody className="divide-y divide-white/[0.02]">
-                              {optionsData.map((opt, i) => (
-                                 <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                                    <td className="py-5 px-8">
-                                       <div className="flex items-center gap-3">
-                                          <div className={`w-8 h-8 rounded flex items-center justify-center ${i % 2 === 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                             <TrendingUp className="w-4 h-4" />
-                                          </div>
-                                          <div className="flex flex-col">
-                                             <span className="font-black text-slate-200">NIFTY {opt.strike} CE</span>
-                                             <span className="text-[9px] font-bold text-slate-600">NSE OPT 25 JAN</span>
-                                          </div>
-                                       </div>
-                                    </td>
-                                    <td className="py-5 px-4"><span className={`status-tag ${i % 2 === 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>{i % 2 === 0 ? 'LONG' : 'SHORT'}</span></td>
-                                    <td className="py-5 px-4 font-bold text-slate-400">50 Qty (1 Lot)</td>
-                                    <td className="py-5 px-4 font-medium text-slate-400">142.35</td>
-                                    <td className="py-5 px-4 font-medium text-slate-200">{opt.callLTP.toFixed(2)}</td>
-                                    <td className="py-5 px-8 text-right">
-                                       <div className="flex flex-col items-end">
-                                          <span className="font-black text-emerald-500">+₹8,390.40</span>
-                                          <span className="text-[9px] font-bold text-emerald-500/60">+1.24%</span>
-                                       </div>
-                                    </td>
-                                 </tr>
-                              ))}
-                           </tbody>
-                        </table>
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                     <div className="trading-card p-8 space-y-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Capital Deployment</h3>
-                        <div className="space-y-2">
-                           <div className="flex justify-between items-baseline">
-                              <span className="text-2xl font-black terminal-text">₹24,90,000</span>
-                              <span className="text-[10px] font-bold text-slate-500">/ 4,82,150</span>
-                           </div>
-                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500 w-[65%]" />
-                           </div>
-                           <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">65% of available margin utilized</div>
-                        </div>
-                     </div>
-                     <div className="trading-card p-8 space-y-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Activity</h3>
-                        <div className="flex items-center gap-4">
-                           <div className="flex-1 space-y-1">
-                              <div className="text-2xl font-black terminal-text italic">{latency}ms</div>
-                              <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Optimal Execution Speed</div>
-                           </div>
-                           <div className="flex items-end gap-1 h-12">
-                              {[30, 50, 40, 80, 60, 90, 70].map((h, i) => (
-                                 <div key={i} className="w-2 bg-emerald-500/20 rounded-t hover:bg-emerald-500 transition-all" style={{ height: `${h}%` }} />
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-
-               {/* RISK MONITORING SIDEBAR */}
-               <div className="col-span-12 lg:col-span-4 space-y-6">
-                  <div className="trading-card p-8 h-[300px] flex flex-col items-center justify-center gap-6 relative">
+                  <div className="trading-card p-10 flex flex-col items-center justify-center space-y-8">
                      <div className="absolute top-6 left-8 text-[10px] font-black uppercase tracking-widest text-slate-500">Risk Protocol</div>
                      <AlertTriangle className="absolute top-6 right-8 w-4 h-4 text-rose-500/50" />
                      <div className="w-40 h-40 rounded-full border-[12px] border-emerald-500/10 flex flex-col items-center justify-center relative">
@@ -613,35 +520,113 @@ export default function ModernDashboard() {
                         Portfolio risk is currently within defined threshold parameters.
                      </p>
                   </div>
+                </div>
 
-                  <div className="trading-card p-8 space-y-6">
-                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Audit Stream</h3>
-                     <div className="space-y-4">
-                        {signals.map((sig, i) => (
-                           <div key={i} className="flex gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-emerald-500/30 transition-all cursor-pointer">
-                              <Cpu className="w-4 h-4 text-emerald-500 mt-1" />
-                              <div className="space-y-1">
-                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-black terminal-text text-emerald-500">{sig.Strike}</span>
-                                    <span className="text-[8px] font-bold text-slate-600">CONFIRMED</span>
-                                 </div>
-                                 <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                                    Neural audit for {sig.Strike} complete. Structural regime verified as bullish expansion.
-                                 </p>
-                              </div>
-                           </div>
-                        ))}
-                        {signals.length === 0 && (
-                           <div className="py-12 text-center text-slate-700 text-[10px] font-black uppercase tracking-widest animate-pulse">
-                              Awaiting Neural Sync...
-                           </div>
-                        )}
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-          </div>
+                <div className="trading-card p-10">
+                   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-8">Neural Audit Stream</h3>
+                   <div className="space-y-4">
+                      {signals.map((sig, i) => (
+                         <div key={i} className="flex gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-emerald-500/30 transition-all cursor-pointer">
+                            <Cpu className="w-4 h-4 text-emerald-500 mt-1" />
+                            <div className="space-y-1">
+                               <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black terminal-text text-emerald-500">{sig.Strike}</span>
+                                  <span className="text-[8px] font-bold text-slate-600">CONFIRMED</span>
+                               </div>
+                               <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                                  Neural audit for {sig.Strike} complete. Structural regime verified as bullish expansion.
+                               </p>
+                            </div>
+                         </div>
+                      ))}
+                      {signals.length === 0 && (
+                         <div className="py-12 text-center text-slate-700 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                            Awaiting Neural Sync...
+                         </div>
+                      )}
+                   </div>
+                </div>
+              </>
+            ) : activeTab === 'POSITIONS' ? (
+              <div className="space-y-8">
+                 <div className="flex items-end justify-between">
+                    <div className="space-y-1">
+                       <h2 className="text-3xl font-black uppercase tracking-tighter italic">Tactical Positions</h2>
+                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Live monitoring of high-fidelity F&O contracts</p>
+                    </div>
+                 </div>
+                 
+                 <div className="trading-card overflow-hidden">
+                    <table className="w-full text-left">
+                       <thead>
+                          <tr className="bg-white/5 border-b border-white/5">
+                             <th className="p-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Instrument</th>
+                             <th className="p-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Side</th>
+                             <th className="p-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Entry</th>
+                             <th className="p-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Current</th>
+                             <th className="p-6 text-[9px] font-black uppercase tracking-widest text-slate-400">SL / TP</th>
+                             <th className="p-6 text-right text-[9px] font-black uppercase tracking-widest text-slate-400">P&L (Real-time)</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          {activeTrade ? (
+                             <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                <td className="p-6">
+                                   <div className="flex items-center gap-3">
+                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTrade.side === 'CALL' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                         <Zap size={18} />
+                                      </div>
+                                      <div>
+                                         <p className="text-[11px] font-black terminal-text uppercase">NIFTY {activeTrade.side}</p>
+                                         <p className="text-[8px] font-bold text-slate-500 uppercase">ATM Contract</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="p-6">
+                                   <span className={`px-2 py-1 rounded text-[8px] font-black tracking-widest ${activeTrade.side === 'CALL' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'}`}>
+                                      {activeTrade.side}
+                                   </span>
+                                </td>
+                                <td className="p-6 text-[11px] font-bold text-slate-400">{activeTrade.entry.toFixed(2)}</td>
+                                <td className="p-6 text-[11px] font-bold text-emerald-500">{niftyPrice.toFixed(2)}</td>
+                                <td className="p-6">
+                                   <div className="space-y-1">
+                                      <p className="text-[9px] font-bold text-rose-500/60 uppercase">SL: {activeTrade.sl.toFixed(2)}</p>
+                                      <p className="text-[9px] font-bold text-emerald-500/60 uppercase">TP: {activeTrade.tp.toFixed(2)}</p>
+                                   </div>
+                                </td>
+                                <td className="p-6 text-right">
+                                   <p className={`text-[12px] font-black terminal-text ${niftyPrice > activeTrade.entry ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                      {niftyPrice > activeTrade.entry ? '+' : '-'}₹{(Math.abs(niftyPrice - activeTrade.entry) * 50).toFixed(2)}
+                                   </p>
+                                </td>
+                             </tr>
+                          ) : (
+                             <tr>
+                                <td colSpan={6} className="p-20 text-center">
+                                   <div className="space-y-4 opacity-30">
+                                      <Monitor className="w-12 h-12 mx-auto text-slate-500" />
+                                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">No Tactical Operations Active</p>
+                                   </div>
+                                </td>
+                             </tr>
+                          )}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center min-h-[500px] trading-card p-12">
+                 <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+                       <LayoutDashboard className="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter">{activeTab} VIEW</h2>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocol interface for {activeTab.toLowerCase()} is initializing...</p>
+                 </div>
+              </div>
+            )}
+         </div>
         </div>
       </main>
 
@@ -678,10 +663,10 @@ export default function ModernDashboard() {
                  <InputGroup label="Groww TOTP Secret" value={growwSecret} onChange={setGrowwSecret} onTest={() => testKey('groww_totp', growwSecret)} testResult={testResults['groww_totp']} />
                  <InputGroup label="Groww API Token" value={growwToken} onChange={setGrowwToken} onTest={() => testKey('groww_api', growwToken, growwSecret)} testResult={testResults['groww_api']} />
                  <InputGroup label="Gemini Audit Layer" value={geminiKey} onChange={setGeminiKey} onTest={() => testKey('gemini', geminiKey)} testResult={testResults['gemini']} />
-                 <InputGroup label="OpenRouter Gateway" value={openRouterKey} onChange={setOpenRouterKey} onTest={() => testKey('openrouter', openRouterKey)} testResult={testResults['openrouter']} />
-                 <div className="col-span-2">
-                    <InputGroup label="Neural Auditor Models" value={openRouterModels} onChange={setOpenRouterModels} />
-                 </div>
+                  <InputGroup label="OpenRouter Gateway" value={openRouterKey} onChange={setOpenRouterKey} onTest={() => testKey('openrouter', openRouterKey)} testResult={testResults['openrouter']} />
+                  <div className="col-span-2">
+                     <InputGroup label="Neural Auditor Models" value={openRouterModels} onChange={setOpenRouterModels} type="text" />
+                  </div>
               </div>
 
               <div className="flex gap-4">
