@@ -159,7 +159,7 @@ export async function POST(request: Request) {
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
-      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`;
+      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&candle_interval=1minute`;
       const candleRes = await fetch(candleUrl, {
         headers: {
           ...commonHeaders,
