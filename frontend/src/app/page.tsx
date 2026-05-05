@@ -73,11 +73,6 @@ export default function ModernDashboard() {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [isPaused, setIsPaused] = useState(false);
   
-  // Use refs for polling to avoid closure staleness without triggering re-runs
-  const stateRef = useRef({ niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused });
-  useEffect(() => {
-    stateRef.current = { niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused };
-  }, [niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused]);
 
   const [isMounted, setIsMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
@@ -94,6 +89,12 @@ export default function ModernDashboard() {
   const [lastCandle, setLastCandle] = useState<any>(null);
   const [isPaperTrading, setIsPaperTrading] = useState(true);
   const [activeTrade, setActiveTrade] = useState<any>(null);
+
+  // Use refs for polling to avoid closure staleness without triggering re-runs
+  const stateRef = useRef({ niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused });
+  useEffect(() => {
+    stateRef.current = { niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused };
+  }, [niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused]);
 
   const isMarketHours = () => {
     const now = new Date();
