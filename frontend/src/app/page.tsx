@@ -83,6 +83,8 @@ export default function ModernDashboard() {
   const [lastLossTime, setLastLossTime] = useState(0);
   const [prevCandle, setPrevCandle] = useState<any>(null);
   const [lastCandle, setLastCandle] = useState<any>(null);
+  const [isPaperTrading, setIsPaperTrading] = useState(true);
+  const [activeTrade, setActiveTrade] = useState<any>(null);
 
   const isMarketHours = () => {
     const now = new Date();
@@ -198,7 +200,7 @@ export default function ModernDashboard() {
   useEffect(() => {
     fetchSignals();
     
-    let pollingDelay = 2000;
+    let pollingDelay = 1000; // Checking every second for high-frequency entry/exit
     let pollTimer: NodeJS.Timeout;
 
     const pollData = async () => {
@@ -223,88 +225,71 @@ export default function ModernDashboard() {
             return;
           }
           
-          pollingDelay = 2000;
+          pollingDelay = 1000;
           const rawData = await res.json();
           const data = rawData.payload || rawData;
           const spot = data.underlying_ltp || 0;
-          const strikes = data.strikes || {};
           
           if (spot > 0) {
             setNiftyPrice(spot);
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' });
-            
+
             setNiftyData(prev => {
               const newData = [...prev, { time: now.toLocaleTimeString(), price: spot }];
               return newData.slice(-60);
             });
 
-            // Candle Tracking for Price Action
+            // Candle Tracking & Signal Engine
             setLastCandle((prev: any) => {
               if (!prev || prev.time !== timeStr) {
-                // New Minute Candle
                 if (prev) setPrevCandle(prev);
                 return { time: timeStr, open: spot, high: spot, low: spot, close: spot };
               }
-              // Update Current Candle
-              return { 
-                ...prev, 
-                high: Math.max(prev.high, spot), 
-                low: Math.min(prev.low, spot), 
-                close: spot 
-              };
+              return { ...prev, high: Math.max(prev.high, spot), low: Math.min(prev.low, spot), close: spot };
             });
 
-            // Signal Engine 2.0
+            // Active Trade Management (SL/TP Check)
+            if (activeTrade) {
+              const isCall = activeTrade.side === 'CALL';
+              const hitTP = isCall ? spot >= activeTrade.tp : spot <= activeTrade.tp;
+              const hitSL = isCall ? spot <= activeTrade.sl : spot >= activeTrade.sl;
+
+              if (hitTP || hitSL) {
+                console.log(`[${isPaperTrading ? 'PAPER' : 'LIVE'}] TRADE_CLOSED`, { type: hitTP ? 'TP' : 'SL', exit: spot });
+                if (hitSL) {
+                   setLastLossTime(Date.now());
+                   setDailyLoss(prev => prev + 1);
+                }
+                setActiveTrade(null);
+              }
+              return; // Don't check for new entry if trade is live
+            }
+
             if (lastCandle && prevCandle) {
-              // Rule 1: Score gate (Simulated weights for now)
               const mockData = { trend: 0.8, deltaROC: 0.7, gex: 0.5, ivFilter: 0.2 }; 
               const score = calculateScore(mockData);
-
               const isCall = score > 0.65;
               const isPut = score < -0.65;
 
               if (isCall || isPut) {
-                // Rule 2: Breakout Confirmation (Reacting, not Predicting)
-                const priceConfirmed = isCall 
-                  ? spot > prevCandle.high 
-                  : spot < prevCandle.low;
-
-                // Rule 3: GEX Proximity Filter
+                const priceConfirmed = isCall ? spot > prevCandle.high : spot < prevCandle.low;
                 const nearestGex = Math.round(spot / 50) * 50; 
                 const distanceToWall = Math.abs(spot - nearestGex);
-
-                // Rule 6: RR Enforcement (TP = entry + 2*(entry-SL))
                 const sl = isCall ? prevCandle.low - 5 : prevCandle.high + 5;
                 const tp = spot + (isCall ? 2 : -2) * Math.abs(spot - sl);
                 const rr = Math.abs(tp - spot) / Math.abs(spot - sl);
 
                 if (priceConfirmed && distanceToWall >= 30 && rr >= 1.8) {
-                   // Rule 8: AI Layer (Parallel Filter)
                    const aiOk = await auditSignal({ Strike: 'NIFTY ATM', T1: tp, T2: tp, T3: tp, SL: sl });
                    if (aiOk) {
-                     console.log("EXECUTION_PROTOCOL_TRIGGERED", { side: isCall ? 'CALL' : 'PUT', entry: spot, sl, tp, rr });
+                     const newTrade = { side: isCall ? 'CALL' : 'PUT', entry: spot, sl, tp, rr, timestamp: Date.now() };
+                     setActiveTrade(newTrade);
                      setTradesToday(t => t + 1);
+                     console.log("EXECUTION_PROTOCOL_TRIGGERED", newTrade);
                    }
                 }
               }
-            }
-
-            // Process options data for UI
-            if (strikes && Object.keys(strikes).length > 0) {
-              const atm = Math.round(spot / 50) * 50;
-              const relevantStrikes = [atm - 100, atm - 50, atm, atm + 50, atm + 100];
-              const newOptions = relevantStrikes.map(strike => {
-                const sData = strikes[strike.toString()] || {};
-                return {
-                  strike: strike.toString(),
-                  callLTP: sData.CE?.ltp || 0,
-                  putLTP: sData.PE?.ltp || 0,
-                  callDelta: sData.CE?.greeks?.delta || 0,
-                  putDelta: sData.PE?.greeks?.delta || 0
-                };
-              });
-              setOptionsData(newOptions);
             }
           }
         } catch (e) { console.error(e); }
@@ -344,6 +329,7 @@ export default function ModernDashboard() {
     setGrowwToken(localStorage.getItem("maxg_groww_token") || "");
     setGeminiKey(localStorage.getItem("maxg_gemini_key") || "");
     setOpenRouterKey(localStorage.getItem("maxg_openrouter_key") || "");
+    setIsPaperTrading(localStorage.getItem("maxg_paper_trading") !== "false");
     setIsMounted(true);
     setCurrentTime(new Date().toLocaleTimeString());
     const tInterval = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
@@ -361,6 +347,7 @@ export default function ModernDashboard() {
     localStorage.setItem("maxg_gemini_key", geminiKey);
     localStorage.setItem("maxg_openrouter_key", openRouterKey);
     localStorage.setItem("maxg_openrouter_models", openRouterModels);
+    localStorage.setItem("maxg_paper_trading", isPaperTrading.toString());
     setIsSettingsOpen(false);
   };
 
@@ -673,6 +660,18 @@ export default function ModernDashboard() {
              </div>
              
               <div className="grid grid-cols-2 gap-8 mb-12">
+                 <div className="col-span-2 flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div>
+                       <span className="text-xs font-black uppercase tracking-widest text-emerald-500">Execution Mode</span>
+                       <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Toggle between Live & Paper Trading</p>
+                    </div>
+                    <button 
+                      onClick={() => setIsPaperTrading(!isPaperTrading)}
+                      className={`px-6 py-2 rounded-lg font-black text-[10px] tracking-widest transition-all ${isPaperTrading ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}
+                    >
+                      {isPaperTrading ? 'PAPER_TRADING' : 'LIVE_MARKET'}
+                    </button>
+                 </div>
                  <div className="col-span-2">
                     <InputGroup label="GitHub Access Protocol" value={gitToken} onChange={setGitToken} onTest={() => testKey('github', gitToken)} testResult={testResults['github']} />
                  </div>
@@ -694,57 +693,6 @@ export default function ModernDashboard() {
       )}
     </div>
   );
-}
- />
-                 <div className="grid grid-cols-2 gap-6">
-                    <InputGroup 
-                      label="Groww TOTP Secret" 
-                      value={growwSecret} 
-                      onChange={setGrowwSecret} 
-                      onTest={() => testKey('groww_totp', growwSecret)}
-                      testResult={testResults['groww_totp']}
-                    />
-                    <InputGroup 
-                      label="Groww API Key (JWT)" 
-                      value={growwToken} 
-                      onChange={setGrowwToken} 
-                      onTest={() => testKey('groww_api', growwToken, growwSecret)}
-                      testResult={testResults['groww_api']}
-                    />
-                 </div>
-                 <InputGroup 
-                    label="Gemini API Key" 
-                    value={geminiKey} 
-                    onChange={setGeminiKey} 
-                    onTest={() => testKey('gemini', geminiKey)}
-                    testResult={testResults['gemini']}
-                 />
-                 <InputGroup 
-                    label="OpenRouter API Key" 
-                    value={openRouterKey} 
-                    onChange={setOpenRouterKey} 
-                    onTest={() => testKey('openrouter', openRouterKey)}
-                    testResult={testResults['openrouter']}
-                 />
-                 <InputGroup 
-                    label="OpenRouter Models (Comma Separated)" 
-                    value={openRouterModels} 
-                    onChange={setOpenRouterModels} 
-                    type="text"
-                 />
-              </div>
-
-             <div className="flex gap-4">
-                <button onClick={saveSettings} className="btn-primary flex-1">Save Configuration</button>
-                <button onClick={() => setIsSettingsOpen(false)} className="px-6 py-2 text-slate-500 font-bold hover:text-slate-300 transition-colors">Cancel</button>
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // --- HELPER COMPONENTS ---
 
 function SidebarNavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
