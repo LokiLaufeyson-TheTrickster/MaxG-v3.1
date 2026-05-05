@@ -64,6 +64,56 @@ export default function ModernDashboard() {
    const [pcr, setPcr] = useState<{value: number, change: string, trend: 'up' | 'down'}>({ value: 0.92, change: "-0.02", trend: "down" });
    const [optionsData, setOptionsData] = useState<any[]>([]);
 
+  const fetchSignals = async () => {
+    try {
+      console.log("[PROTOCOL] Syncing Neural Signals...");
+      const res = await fetch("https://raw.githubusercontent.com/LokiLaufeyson-TheTrickster/MaxG-v3.1/main/data/signals.json");
+      if (res.ok) {
+        const data = (await res.json()) as Signal[];
+        console.log("[PROTOCOL] Signals Synced:", data.length);
+        setSignals(data);
+      } else {
+        console.error("[PROTOCOL] Signal Sync Failed:", res.status, res.statusText);
+      }
+    } catch (e) {
+      console.error("[PROTOCOL] Critical Signal Sync Error:", e);
+    }
+  };
+
+  const fetchHistoricalCandles = async (token: string | null, secret: string | null) => {
+    if (!token || !secret) return;
+    try {
+      console.log("[PROTOCOL] Initializing Market History Stream...");
+      const res = await fetch('/api/groww', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: token, totpSecret: secret, action: 'getCandles' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const candles = data.payload?.candles || data.candles || [];
+        if (Array.isArray(candles) && candles.length > 0) {
+          console.log(`[PROTOCOL] History Stream Active: ${candles.length} candles`);
+          const history = candles.slice(-60).map((c: any) => ({
+            time: new Date(c[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            price: c[4]
+          }));
+          setNiftyData(history);
+          setNiftyPrice(candles[candles.length - 1][4]);
+          
+          const last = candles[candles.length - 1];
+          setPrevCandle({ time: 'prev', open: last[1], high: last[2], low: last[3], close: last[4] });
+        } else {
+          console.warn("[PROTOCOL] History Stream returned no data");
+        }
+      } else {
+         console.error("[PROTOCOL] History Stream Error:", res.status);
+      }
+    } catch (e) { 
+      console.error("[PROTOCOL] Critical History Stream Error:", e); 
+    }
+  };
+
   const [positions, setPositions] = useState<Position[]>([]);
   const [metrics, setMetrics] = useState({
     equity: "1,00,000.00",
@@ -200,27 +250,13 @@ export default function ModernDashboard() {
     }
   };
 
-  const fetchSignals = async () => {
-    try {
-      console.log("[PROTOCOL] Syncing Neural Signals...");
-      const res = await fetch("https://raw.githubusercontent.com/LokiLaufeyson-TheTrickster/MaxG-v3.1/main/data/signals.json");
-      if (res.ok) {
-        const data = (await res.json()) as Signal[];
-        console.log("[PROTOCOL] Signals Synced:", data.length);
-        setSignals(data);
-      } else {
-        console.error("[PROTOCOL] Signal Sync Failed:", res.status, res.statusText);
-      }
-    } catch (e) {
-      console.error("[PROTOCOL] Critical Signal Sync Error:", e);
-    }
-  };
 
   useEffect(() => {
     fetchSignals();
     
-    let pollingDelay = 1000; // Checking every second for high-frequency entry/exit
+    let pollingDelay = 1000;
     let pollTimer: NodeJS.Timeout;
+    let vixCounter = 19; // Trigger on first poll
 
     const pollData = async () => {
       if (stateRef.current.isPaused) {
@@ -308,8 +344,10 @@ export default function ModernDashboard() {
             }
           }
 
-          // 2. Fetch VIX (less frequent, every 10 polls)
-          if (Math.random() > 0.9) {
+          // 2. Fetch VIX (deterministic every 20 polls ~20 seconds)
+          vixCounter++;
+          if (vixCounter >= 20) {
+             vixCounter = 0;
              const vRes = await fetch('/api/groww', {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
@@ -334,39 +372,6 @@ export default function ModernDashboard() {
       }
     };
 
-    const fetchHistoricalCandles = async (token: string | null, secret: string | null) => {
-      if (!token || !secret) return;
-      try {
-        console.log("[PROTOCOL] Initializing Market History Stream...");
-        const res = await fetch('/api/groww', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: token, totpSecret: secret, action: 'getCandles' })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const candles = data.payload?.candles || data.candles || [];
-          if (Array.isArray(candles) && candles.length > 0) {
-            console.log(`[PROTOCOL] History Stream Active: ${candles.length} candles`);
-            const history = candles.slice(-60).map((c: any) => ({
-              time: new Date(c[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              price: c[4]
-            }));
-            setNiftyData(history);
-            setNiftyPrice(candles[candles.length - 1][4]);
-            
-            const last = candles[candles.length - 1];
-            setPrevCandle({ time: 'prev', open: last[1], high: last[2], low: last[3], close: last[4] });
-          } else {
-            console.warn("[PROTOCOL] History Stream returned no data");
-          }
-        } else {
-           console.error("[PROTOCOL] History Stream Error:", res.status);
-        }
-      } catch (e) { 
-        console.error("[PROTOCOL] Critical History Stream Error:", e); 
-      }
-    };
 
     const runPoll = () => {
       pollData().finally(() => {
@@ -402,6 +407,10 @@ export default function ModernDashboard() {
     localStorage.setItem("maxg_openrouter_models", openRouterModels);
     localStorage.setItem("maxg_paper_trading", isPaperTrading.toString());
     setIsSettingsOpen(false);
+    
+    // Refresh data with new keys
+    fetchHistoricalCandles(growwToken, growwSecret);
+    fetchSignals();
   };
 
   const testKey = async (type: string, value: string, extra?: string) => {
