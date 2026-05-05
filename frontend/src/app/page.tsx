@@ -60,8 +60,8 @@ export default function ModernDashboard() {
 
    const [niftyData, setNiftyData] = useState<{time: string, price: number}[]>([]);
    const [niftyPrice, setNiftyPrice] = useState(0);
-   const [vix, setVix] = useState({ value: 18.42, change: "+2.15%", trend: "up" });
-   const [pcr, setPcr] = useState({ value: 0.92, change: "-0.02", trend: "down" });
+   const [vix, setVix] = useState<{value: number, change: string, trend: 'up' | 'down'}>({ value: 18.42, change: "+2.15%", trend: "up" });
+   const [pcr, setPcr] = useState<{value: number, change: string, trend: 'up' | 'down'}>({ value: 0.92, change: "-0.02", trend: "down" });
    const [optionsData, setOptionsData] = useState<any[]>([]);
 
   const [positions, setPositions] = useState<Position[]>([]);
