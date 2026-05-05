@@ -11,15 +11,17 @@ async function safeJson(response: Response) {
     
     // Helper to try parsing text as JSON
     const tryParse = (text: string) => {
-      const cleanText = text
-        .replace(/^[\uFEFF\uFFFE\u0000-\u001F\u007F-\u009F\uFFFD]+/, '')
-        .trim();
+      // Find JSON boundaries regardless of garbage
+      const firstBrace = text.indexOf('{');
+      const firstBracket = text.indexOf('[');
+      const start = (firstBrace === -1) ? firstBracket : (firstBracket === -1 ? firstBrace : Math.min(firstBrace, firstBracket));
       
-      const firstBrace = cleanText.search(/[\{\[]/);
-      const lastBrace = Math.max(cleanText.lastIndexOf('}'), cleanText.lastIndexOf(']'));
+      const lastBrace = text.lastIndexOf('}');
+      const lastBracket = text.lastIndexOf(']');
+      const end = Math.max(lastBrace, lastBracket);
       
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        const jsonText = cleanText.substring(firstBrace, lastBrace + 1);
+      if (start !== -1 && end !== -1 && end > start) {
+        const jsonText = text.substring(start, end + 1);
         try { return JSON.parse(jsonText); } catch { return null; }
       }
       return null;
@@ -153,7 +155,7 @@ export async function POST(request: Request) {
       
       const formatTime = (d: Date) => d.toISOString().replace('T', ' ').split('.')[0];
       
-      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&interval_in_minutes=1`;
+      const candleUrl = `https://api.groww.in/v1/historical/candles?groww_symbol=nifty&exchange=NSE&segment=CASH&start_time=${formatTime(startTime)}&end_time=${formatTime(endTime)}&candle_interval=1`;
       const candleRes = await fetch(candleUrl, {
         headers: {
           ...commonHeaders,
