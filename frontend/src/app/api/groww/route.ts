@@ -164,7 +164,7 @@ export async function POST(request: Request) {
 
     if (action === 'getVix') {
       lastStep = 'fetch_vix';
-      const vixUrl = `https://api.groww.in/v1/live_index/v1/index/INDIAVIX`;
+      const vixUrl = `https://api.groww.in/v1/live-data/quote?exchange=NSE&segment=CASH&trading_symbol=INDIAVIX`;
       const vixRes = await fetch(vixUrl, {
         headers: {
           ...commonHeaders,
