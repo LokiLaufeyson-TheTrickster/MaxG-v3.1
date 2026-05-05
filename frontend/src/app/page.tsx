@@ -71,6 +71,14 @@ export default function ModernDashboard() {
     activeHedges: "00"
   });
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Use refs for polling to avoid closure staleness without triggering re-runs
+  const stateRef = useRef({ niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused });
+  useEffect(() => {
+    stateRef.current = { niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused };
+  }, [niftyPrice, lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime, activeTrade, isPaused]);
+
   const [isMounted, setIsMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [pulse, setPulse] = useState({
@@ -208,6 +216,11 @@ export default function ModernDashboard() {
     let pollTimer: NodeJS.Timeout;
 
     const pollData = async () => {
+      if (stateRef.current.isPaused) {
+        pollingDelay = 5000;
+        return;
+      }
+      
       if (!isMarketHours()) {
         pollingDelay = 60000;
         return;
@@ -342,7 +355,7 @@ export default function ModernDashboard() {
       if (pollTimer) clearTimeout(pollTimer);
       clearInterval(tInterval);
     };
-  }, [lastCandle, prevCandle, tradesToday, dailyLoss, lastLossTime]); // Important dependencies for the poll closure
+  }, []); // Only run once on mount
 
   const saveSettings = () => {
     localStorage.setItem("maxg_gh_token", gitToken);
@@ -644,7 +657,22 @@ export default function ModernDashboard() {
                 </div>
              </div>
              
-              <div className="grid grid-cols-2 gap-8 mb-12">
+              <div className="space-y-10">
+                
+                <div className="flex items-center justify-between p-6 bg-white/[0.03] border border-white/5 rounded-2xl">
+                  <div className="space-y-1">
+                     <h2 className="text-lg font-black uppercase tracking-widest text-emerald-500">Sentinel Control</h2>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase">Halt all index polling & neural audits</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsPaused(!isPaused)} 
+                    className={`px-10 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-2xl ${isPaused ? 'bg-emerald-500 text-[#080d17] hover:bg-emerald-400' : 'bg-rose-500/20 text-rose-500 border border-rose-500/30 hover:bg-rose-500/30'}`}
+                  >
+                    {isPaused ? 'RESUME_OPERATIONS' : 'HALT_OPERATIONS'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mb-12">
                  <div className="col-span-2 flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                     <div>
                        <span className="text-xs font-black uppercase tracking-widest text-emerald-500">Execution Mode</span>
@@ -668,6 +696,7 @@ export default function ModernDashboard() {
                      <InputGroup label="Neural Auditor Models" value={openRouterModels} onChange={setOpenRouterModels} type="text" />
                   </div>
               </div>
+          </div>
 
               <div className="flex gap-4">
                  <button onClick={saveSettings} className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-[#080d17] font-black text-xs uppercase tracking-[0.2em] rounded-lg transition-all shadow-xl shadow-emerald-500/20 active:scale-95">Commit Changes</button>
