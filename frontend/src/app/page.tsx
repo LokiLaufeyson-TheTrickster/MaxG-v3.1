@@ -326,6 +326,13 @@ export default function ModernDashboard() {
           const data = await res.json();
           const candles = data.payload?.candles || data.candles || [];
           if (Array.isArray(candles) && candles.length > 0) {
+            const history = candles.slice(-60).map((c: any) => ({
+              time: new Date(c[0] * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              price: c[4]
+            }));
+            setNiftyData(history);
+            setNiftyPrice(candles[candles.length - 1][4]);
+            
             const last = candles[candles.length - 1];
             setPrevCandle({ time: 'prev', open: last[1], high: last[2], low: last[3], close: last[4] });
           }
