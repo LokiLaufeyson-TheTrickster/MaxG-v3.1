@@ -568,6 +568,7 @@ export default function ModernDashboard() {
                      <p className="text-[10px] text-center text-slate-500 font-medium leading-relaxed max-w-[200px]">
                         Portfolio risk is currently within defined threshold parameters.
                      </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-6">
@@ -625,8 +626,6 @@ export default function ModernDashboard() {
                         )}
                     </div>
                   </div>
-                </div>
-
               </>
             ) : activeTab === 'POSITIONS' ? (
               <div className="space-y-8">
