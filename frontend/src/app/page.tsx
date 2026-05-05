@@ -156,7 +156,7 @@ export default function ModernDashboard() {
       const dataO = await resOR.json();
       
       const parse = (raw: string) => {
-        try { return JSON.parse(raw.match(/\{.*\}/s)?.[0] || '{}'); } catch { return null; }
+        try { return JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}'); } catch { return null; }
       };
 
       const auditG = parse(dataG.candidates[0].content.parts[0].text);
